@@ -63,7 +63,7 @@ class Agent(object):
             twindb_agent.handlers.commit_registration(agent_config=self.config, debug=self.debug)
 
     def unregister(self, delete_backups=False):
-        pass
+        twindb_agent.handlers.unregister(self.config, delete_backups=delete_backups, debug=self.debug)
 
     def backup(self):
         pass

@@ -173,7 +173,7 @@ def register(code, agent_config, debug=False):
       True    - if server was successfully registered
     Exits if error happened
     """
-    log = twindb_agent.logging_remote.getlogger(__name__, agent_config, debug=debug)
+    log = twindb_agent.logging_remote.getlogger(__name__, agent_config, log_to_console=True, debug=debug)
     http = twindb_agent.httpclient.TwinDBHTTPClient(agent_config, debug=debug)
     gpg = twindb_agent.gpg.TwinDBGPG(agent_config, debug=debug)
 
@@ -544,4 +544,38 @@ def send_key(agent_config, job_order, debug=False):
     else:
         log.error("The job order requested send_key, but no public key was provided")
         return -1
+
+
+def unregister(agent_config, delete_backups=False, debug=False):
+    """
+    Unregisters this server in TwinDB dispatcher
+    Returns
+      True    - if server was successfully unregistered
+      False   - if error happened
+    """
+    log = twindb_agent.logging_remote.getlogger(__name__, agent_config, log_to_console=True, debug=debug)
+    http = twindb_agent.httpclient.TwinDBHTTPClient(agent_config, debug=debug)
+
+    data = {
+        "type": "unregister",
+        "params": {
+            "delete_backups": delete_backups,
+        }
+    }
+    log.debug("Unregistration request:")
+    log.debug(data)
+    response = http.get_response(data)
+    if response:
+        jd = json.JSONDecoder()
+        r = jd.decode(response)
+        log.debug(r)
+        if r["success"]:
+            log.info("The server is successfully unregistered")
+            return True
+        else:
+            gpg = twindb_agent.gpg.TwinDBGPG(agent_config)
+            exit_on_error("Failed to unregister the agent: " + jd.decode(gpg.decrypt(r["response"]))["error"])
+    else:
+        exit_on_error("Empty response from server")
+    return False
 

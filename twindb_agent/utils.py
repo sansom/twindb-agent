@@ -11,7 +11,7 @@ import errno
 import time
 import sys
 
-log = twindb_agent.logging_local.getlogger(__name__)
+log = twindb_agent.logging_local.getlogger(__name__, log_to_console=True)
 
 
 def h_size(num, decimals=2):

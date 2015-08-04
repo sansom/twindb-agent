@@ -37,8 +37,8 @@ class RlogHandler(logging.Handler):
         httpclient.get_response(request)
 
 
-def getlogger(name, server_id, debug=False):
-    logger = twindb_agent.logging_local.getlogger(name, debug)
+def getlogger(name, server_id, log_to_console=False, debug=False):
+    logger = twindb_agent.logging_local.getlogger(name, log_to_console=log_to_console, debug=debug)
 
     remote_handler_added = False
     for lh in logger.handlers:

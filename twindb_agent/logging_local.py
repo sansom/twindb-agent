@@ -13,7 +13,7 @@ class TwinDBLoggingException(Exception):
     pass
 
 
-def getlogger(name, debug=False):
+def getlogger(name, log_to_console=False, debug=False):
     logger = logging.getLogger(name)
     if not logger.handlers:
         log_dir = "/var/log/twindb"
@@ -33,6 +33,10 @@ def getlogger(name, debug=False):
         file_handler.setFormatter(logging.Formatter(fmt_str))
 
         logger.addHandler(file_handler)
+        if log_to_console:
+            console_handler = logging.StreamHandler()
+            console_handler.setFormatter(logging.Formatter(fmt_str))
+            logger.addHandler(console_handler)
 
     if debug:
         logger.setLevel(logging.DEBUG)
