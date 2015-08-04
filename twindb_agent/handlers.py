@@ -26,7 +26,7 @@ def get_config(agent_config, debug=False):
                 "server_id": agent_config.server_id
             }
         }
-        http = twindb_agent.httpclient.TwinDBHTTPClient(agent_config)
+        http = twindb_agent.httpclient.TwinDBHTTPClient(agent_config, debug=debug)
         response_body = http.get_response(data)
         if not response_body:
             return None
@@ -37,8 +37,8 @@ def get_config(agent_config, debug=False):
             msg_decrypted = gpg.decrypt(response_body_decoded["response"])
             msg_pt = d.decode(msg_decrypted)
             config = msg_pt["data"]
-            log.info("Got config:\n%s" % json.dumps(twindb_agent.utils.sanitize_config(config),
-                                                    indent=4, sort_keys=True))
+            log.debug("Got config:\n%s" % json.dumps(twindb_agent.utils.sanitize_config(config),
+                                                     indent=4, sort_keys=True))
             if msg_pt["error"]:
                 log.error(msg_pt["error"])
     except KeyError as err:
@@ -91,7 +91,7 @@ def get_job(agent_config, debug=False):
             job = d.decode(job_json)["data"]
             if job and "params" in job and job["params"]:
                 job["params"] = d.decode(job["params"])
-                log.info("Got job:\n%s" % json.dumps(job, indent=4, sort_keys=True))
+                log.debug("Got job:\n%s" % json.dumps(job, indent=4, sort_keys=True))
         else:
             log.error("Couldn't get job")
             job_json = gpg.decrypt(msg_enc)
@@ -350,6 +350,9 @@ def log_job_notify(agent_config, params, debug=False):
     }
     job_id = int(params["job_id"])
     response_body = http.get_response(data)
+    if not response_body:
+        log.error("Failed to notify status of job_id = %d to dispatcher" % job_id)
+        return
     d = json.JSONDecoder()
     response_body_decoded = d.decode(response_body)
     if response_body_decoded["success"]:
@@ -373,6 +376,9 @@ def report_sss(agent_config, debug=False):
     log.debug("Reporting SHOW SLAVE STATUS for server_id = %s" % agent_config.server_id)
 
     server_config = get_config(agent_config)
+    if not server_config:
+        log.error("Failed to get server config from dispatcher")
+        return
     mysql = twindb_agent.twindb_mysql.MySQL(agent_config,
                                             mysql_user=server_config["mysql_user"],
                                             mysql_password=server_config["mysql_password"],
@@ -410,6 +416,9 @@ def report_agent_privileges(agent_config, debug=False):
     log.debug("Reporting agent privileges for server_id = %s" % agent_config.server_id)
 
     server_config = get_config(agent_config)
+    if not server_config:
+        log.error("Failed to get server config from dispatcher")
+        return
     mysql = twindb_agent.twindb_mysql.MySQL(agent_config,
                                             mysql_user=server_config["mysql_user"],
                                             mysql_password=server_config["mysql_password"],
@@ -455,3 +464,84 @@ def report_agent_privileges(agent_config, debug=False):
         log.error("Could not report agent permissions to the dispatcher")
         log.error(err)
     return
+
+
+def send_key(agent_config, job_order, debug=False):
+    """
+    Processes send_key job
+    :param agent_config:
+    :return: nothing
+    """
+    log = twindb_agent.logging_remote.getlogger(__name__, agent_config, debug=debug)
+    http = twindb_agent.httpclient.TwinDBHTTPClient(agent_config, debug=debug)
+
+    # Get owner of the GPG key
+    cmd_1 = ["gpg", "--list-packets"]
+    try:
+        gpg_pub_key = job_order["params"]["gpg_pub_key"]
+        if gpg_pub_key:
+            log.debug("Starting %r" % cmd_1)
+            p1 = subprocess.Popen(cmd_1, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+            cout, cerr = p1.communicate(gpg_pub_key)
+            keyid = "Unknown"
+            for line in cout.split("\n"):
+                if "keyid:" in line:
+                    keyid = line.replace("keyid:", "").strip()
+                    break
+            log.debug("Requestor's public key id is %s" % keyid)
+        else:
+            log.error("Requestor public key is empty")
+            return -1
+    except OSError as err:
+        log.error("Failed to run command %r: %s" % (cmd_1, err))
+        return -1
+    # Import public GPG key. It's a user public key sent by the dispatcher
+    try:
+        log.debug("Importing requestor's key %s" % keyid)
+        cmd_1 = ["gpg", "--import"]
+        p1 = subprocess.Popen(cmd_1, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        cout, cerr = p1.communicate(gpg_pub_key)
+        if cout:
+            log.info(cout)
+        if cerr:
+            log.error(cerr)
+    except OSError as err:
+        log.error("Failed to run command %r: %s" % (cmd_1, err))
+        return -1
+    # Get private key and encrypt it
+    gpg_pub_key = job_order["params"]["gpg_pub_key"]
+    if gpg_pub_key:
+        log.debug("Exporting private key of server %s" % agent_config.server_id)
+        cmd_1 = ["gpg", "--armor", "--export-secret-key", agent_config.server_id]
+        cmd_2 = ["gpg", "--armor", "--encrypt", "--sign", "--batch", "-r", keyid,
+                 "--local-user", agent_config.server_id,
+                 "--trust-model", "always"]
+        try:
+            log.debug("Starting %r" % cmd_1)
+            p1 = subprocess.Popen(cmd_1, stdout=subprocess.PIPE)
+        except OSError as err:
+            log.error("Failed to run command %r: %s" % (cmd_1, err))
+            return -1
+        try:
+            log.debug("Starting %r" % cmd_2)
+            p2 = subprocess.Popen(cmd_2, stdin=p1.stdout, stdout=subprocess.PIPE)
+            cout, cerr = p2.communicate()
+            enc_private_key = cout
+            log.debug("Encrypted private key %s" % enc_private_key)
+        except OSError as err:
+            log.error("Failed to run command %r: %s" % (cmd_2, err))
+            return -1
+        # Now send the private key to dispatcher
+        data = {
+            "type": "send_key",
+            "params": {
+                "enc_private_key": enc_private_key,
+                "job_id": job_order["job_id"]
+            }
+        }
+        http.get_response(data)
+        return 0
+    else:
+        log.error("The job order requested send_key, but no public key was provided")
+        return -1
+

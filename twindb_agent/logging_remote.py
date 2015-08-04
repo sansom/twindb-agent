@@ -33,7 +33,7 @@ class RlogHandler(logging.Handler):
             # If there is no job_id key in args KeyError will be raisen
             pass
         request["params"]["msg"] = record.getMessage()
-        httpclient = twindb_agent.httpclient.TwinDBHTTPClient(self.agent_config)
+        httpclient = twindb_agent.httpclient.TwinDBHTTPClient(self.agent_config, debug=False)
         httpclient.get_response(request)
 
 
@@ -50,8 +50,8 @@ def getlogger(name, server_id, debug=False):
         remote_handler.setFormatter("%(name)s: %(levelname)s: %(funcName)s():%(lineno)d: %(message)s")
         if remote_handler not in logger.handlers:
             logger.addHandler(remote_handler)
-            if debug:
-                logger.setLevel(logging.DEBUG)
-            else:
-                logger.setLevel(logging.INFO)
+    if debug:
+        logger.setLevel(logging.DEBUG)
+    else:
+        logger.setLevel(logging.INFO)
     return logger

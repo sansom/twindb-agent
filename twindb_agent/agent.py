@@ -36,13 +36,13 @@ class Agent(object):
                 # Report replication status
                 proc = multiprocessing.Process(target=twindb_agent.handlers.report_sss,
                                                name="report_sss",
-                                               args=(self.config,))
+                                               args=(self.config, self.debug))
                 proc.run()
 
                 # Report agent privileges
                 proc = multiprocessing.Process(target=twindb_agent.handlers.report_agent_privileges,
-                                               name="report_sss",
-                                               args=(self.config,))
+                                               name="report_agent_privileges",
+                                               args=(self.config, self.debug))
                 proc.run()
 
                 # Calling this has the side affect of “joining” any processes which have already finished.

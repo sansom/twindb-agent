@@ -25,8 +25,10 @@ def parse_options():
     parser.add_option("--delete-backups", help="When unregistering TwinDB agent delete backups taken from this server",
                       action="store_true", dest="delete_backups", default=False)
     parser.add_option("--backup", help="Take backup copy now")
-    parser.add_option("--is-registered", help="Check if the agent is registered in TwinDB")
+    parser.add_option("--is-registered", help="Check if the agent is registered in TwinDB", action="store_true")
     parser.add_option("--version", help="Print the agent version", action="store_true")
+    parser.add_option("--debug", help="Print debug information to log",
+                      action="store_true", dest="debug", default=False)
     return parser.parse_args()
 
 
@@ -47,7 +49,7 @@ def main():
     (options, args) = parse_options()
 
     agent_config = get_agent_config(options)
-    agent = twindb_agent.agent.Agent(agent_config)
+    agent = twindb_agent.agent.Agent(agent_config, debug=options.debug)
 
     if options.start:
         agent.start()
@@ -60,7 +62,10 @@ def main():
     elif options.backup:
         agent.backup()
     elif options.is_registered:
-        agent.is_registered()
+        if agent.is_registered():
+            print("YES")
+        else:
+            print("NO")
     elif options.version:
         print(twindb_agent.__version__)
         sys.exit(0)

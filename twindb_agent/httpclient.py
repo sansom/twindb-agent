@@ -14,6 +14,8 @@ import twindb_agent.gpg
 class TwinDBHTTPClient(object):
     def __init__(self, config, debug=False):
         self.config = config
+        self.debug = debug
+
         self.logger = twindb_agent.logging_local.getlogger(__name__, debug)
 
     def get_response(self, request):
@@ -30,6 +32,7 @@ class TwinDBHTTPClient(object):
         """
         log = self.logger
         response_body = None
+
         log.debug("Enter get_response(uri=" + self.config.api_uri + ")")
         if self.config.api_proto == "http":
             conn = httplib.HTTPConnection(self.config.api_host)

@@ -62,7 +62,9 @@ class Job(object):
             elif self.job_order["type"] == "restore":
                 ret = self.restore_backup()
             elif self.job_order["type"] == "send_key":
-                ret = self.handler_send_key()
+                ret = twindb_agent.handlers.send_key(agent_config=self.agent_config,
+                                                     job_order=self.job_order,
+                                                     debug=self.debug)
             else:
                 raise JobError("Unsupported job type " + self.job_order["type"])
 
@@ -89,9 +91,6 @@ class Job(object):
         return 0
 
     def restore_backup(self):
-        return 0
-
-    def handler_send_key(self):
         return 0
 
 

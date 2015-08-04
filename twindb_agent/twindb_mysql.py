@@ -27,7 +27,7 @@ class MySQL(object):
         self.mysql_user = mysql_user
         self.mysql_password = mysql_password
         self.debug = debug
-        self.logger = twindb_agent.logging_remote.getlogger(__name__, agent_config.server_id, debug=debug)
+        self.logger = twindb_agent.logging_remote.getlogger(__name__, agent_config, debug=debug)
 
     def get_mysql_connection(self):
         """

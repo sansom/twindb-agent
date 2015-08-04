@@ -33,8 +33,10 @@ def getlogger(name, debug=False):
         file_handler.setFormatter(logging.Formatter(fmt_str))
 
         logger.addHandler(file_handler)
+
+    if debug:
+        logger.setLevel(logging.DEBUG)
+    else:
         logger.setLevel(logging.INFO)
-        if debug:
-            logger.setLevel(logging.DEBUG)
 
     return logger
