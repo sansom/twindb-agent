@@ -16,6 +16,7 @@ with open("HISTORY.rst") as history_file:
 
 requirements = [
     # TODO: put package requirements here
+    "mysql.connector"
 ]
 
 test_requirements = [
@@ -51,7 +52,7 @@ setup(
     author_email="dev@twindb.com",
     url="https://github.com/twindb/twindb-agent",
     packages=[
-        "twindb_agent",
+        "twindb_agent"
     ],
     package_dir={'twindb_agent':
                  'twindb_agent'},

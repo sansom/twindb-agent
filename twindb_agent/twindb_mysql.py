@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 """
 Classes and funtions to work with MySQL
 """
@@ -7,6 +9,8 @@ import os
 import subprocess
 import pwd
 import twindb_agent.logging_remote
+import twindb_agent.handlers
+from twindb_agent.utils import exit_on_error
 
 try:
     import mysql.connector
@@ -18,31 +22,35 @@ except ImportError:
 
 
 class MySQL(object):
-    def __init__(self, agent_config, debug=False):
+    def __init__(self, agent_config, mysql_user=None, mysql_password=None, debug=False):
         self.agent_config = agent_config
+        self.mysql_user = mysql_user
+        self.mysql_password = mysql_password
+        self.debug = debug
         self.logger = twindb_agent.logging_remote.getlogger(__name__, agent_config.server_id, debug=debug)
 
     def get_mysql_connection(self):
         """
         Returns connection to the local MySQL instance.
         If user is passed as an argument it'll be used to connect,
-        otherwise the second choice will be to use mysql_user.
+        otherwise the second choice will be to use mysql_user from agent config.
         If neither user names are set the function will try to use either of MySQL option files
         (/etc/my.cnf, /etc/mysql/my.cnf, or /root/.my.cnf). If the option files don't exist
         it'll try to connect as root w/o password.
         """
         log = self.logger
         try:
-
             unix_socket = self.get_unix_socket()
-            if not self.agent_config.mysql_user:
+
+            if not self.mysql_user:
+
                 if self.agent_config.mysql_user or self.agent_config.mysql_password:
                     log.debug('Using MySQL user specified in agent config')
                     if self.agent_config.mysql_user:
-                        user = self.agent_config.mysql_user
+                        self.mysql_user = self.agent_config.mysql_user
                     else:
-                        user = getpass.getuser()
-                    passwd = self.agent_config.mysql_password
+                        self.mysql_user = getpass.getuser()
+                    self.mysql_password = self.agent_config.mysql_password
                 else:
                     for options_file in ["/etc/my.cnf", "/etc/mysql/my.cnf", "/usr/etc/my.cnf",
                                          "/root/.my.cnf", "/root/.mylogin.cnf"]:
@@ -53,20 +61,21 @@ class MySQL(object):
                                 for section in ["client", "twindb"]:
                                     if config.has_section(section):
                                         if config.has_option(section, "user"):
-                                            user = config.get(section, "user")
+                                            self.mysql_user = config.get(section, "user")
                                         if config.has_option(section, "password"):
-                                            passwd = config.get(section, "user")
+                                            self.mysql_password = config.get(section, "password")
                             except ConfigParser.ParsingError as err:
                                 log.debug(err)
                                 log.debug("Ignoring options file %s" % options_file)
                                 pass
                     # If user isn't set by the function argument, global mysql_user
                     # or MySQL options file connect as unix user w/ empty password
-                    if not user:
-                        user = pwd.getpwuid(os.getuid()).pw_name
-                        passwd = ""
-                        log.debug("Connecting to MySQL as unix user %s" % user)
-            conn = mysql.connector.connect(user=user, passwd=passwd, unix_socket=unix_socket)
+                    if not self.mysql_user:
+                        self.mysql_user = pwd.getpwuid(os.getuid()).pw_name
+                        self.mysql_password = ""
+                        log.debug("Connecting to MySQL as unix user %s" % self.mysql_user)
+
+            conn = mysql.connector.connect(user=self.mysql_user, passwd=self.mysql_password, unix_socket=unix_socket)
             log.debug("Connected to MySQL as %s@localhost " % conn.user)
         except mysql.connector.Error as err:
             log.error("Can not connect to local MySQL server")
@@ -222,3 +231,22 @@ class MySQL(object):
             log.error("Could not read the grants information from MySQL")
             log.error("MySQL Error: %s" % err)
         return has_required_grants, missing_privileges
+
+    def create_agent_user(self):
+        """
+        Creates local MySQL user for twindb agent
+        """
+        config = twindb_agent.handlers.get_config(self.agent_config, debug=self.debug)
+        log = self.logger
+        try:
+            conn = self.get_mysql_connection()
+            q = "GRANT RELOAD, LOCK TABLES, REPLICATION CLIENT, SUPER, CREATE TABLESPACE"
+            q += " ON *.* TO %s@'localhost' IDENTIFIED BY %s"
+            cursor = conn.cursor()
+            cursor.execute(q, (config["mysql_user"], config["mysql_password"]))
+        except mysql.connector.Error as err:
+            log.error("MySQL replied: %s" % err)
+            exit_on_error("Failed to create MySQL user %s@localhost for TwinDB agent" % config["mysql_user"])
+        log.info("Created MySQL user %s@localhost for TwinDB agent" % config["mysql_user"])
+        return True
+

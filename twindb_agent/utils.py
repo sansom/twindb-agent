@@ -1,16 +1,17 @@
+# -*- coding: utf-8 -*-
+
 """
 Auxilary functions
 """
 import os
 import traceback
 
-import twindb.loggin_local
+import twindb_agent.logging_local
 import errno
 import time
-import twindb.globals
 import sys
 
-log = twindb.loggin_local.getlogger(__name__)
+log = twindb_agent.logging_local.getlogger(__name__)
 
 
 def h_size(num, decimals=2):

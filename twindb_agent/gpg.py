@@ -1,22 +1,19 @@
+# -*- coding: utf-8 -*-
+
 """
 Classes and functions for cryptography
 """
 from base64 import b64encode, b64decode
 import os
 import subprocess
-import twindb.logging_local
-import twindb.globals
+import twindb_agent.logging_local
 
 
 class TwinDBGPG(object):
-    def __init__(self, server_id,
-                 gpg_homedir=twindb.globals.gpg_homedir,
-                 api_pub_key=twindb.globals.api_pub_key,
-                 debug=False):
-        self.gpg_homedir = gpg_homedir
-        self.server_id = server_id
-        self.api_pub_key = api_pub_key
-        self.logger = twindb.logging_local.getlogger(__name__, debug=debug)
+    def __init__(self, config, debug=False):
+        self.config = config
+        self.logger = twindb_agent.logging_local.getlogger(__name__, debug=debug)
+        self.check_gpg()
 
     def is_gpg_key_installed(self, email, key_type="public"):
         """
@@ -30,7 +27,7 @@ class TwinDBGPG(object):
             log.error("Can not check public key of an empty email")
             return False
         log.debug("Checking if public key of %s is installed" % email)
-        gpg_cmd = ["gpg", "--homedir", self.gpg_homedir]
+        gpg_cmd = ["gpg", "--homedir", self.config.gpg_homedir]
         try:
             if key_type == "public":
                 gpg_cmd.append("-k")
@@ -61,11 +58,11 @@ class TwinDBGPG(object):
         Exits if the key wasn't installed
         """
         log = self.logger
-        log.info("Installing twindb public key")
-        gpg_cmd = ["gpg", "--homedir", self.gpg_homedir, "--import"]
+        log.info("Installing %s public key" % self.config.api_email)
+        gpg_cmd = ["gpg", "--homedir", self.config.gpg_homedir, "--import"]
         try:
             p = subprocess.Popen(gpg_cmd, stdin=subprocess.PIPE)
-            p.communicate(self.api_pub_key)
+            p.communicate(self.config.api_pub_key)
         except OSError as err:
             raise TwinDBGPGException("Couldn't run command %r. %s" % (gpg_cmd, err))
             # exit_on_error("Couldn't install TwinDB public key")
@@ -82,23 +79,23 @@ class TwinDBGPG(object):
         """
         log = self.logger
         log.debug("Checking if GPG config is initialized")
-        if os.path.exists(self.gpg_homedir):
-            if not self.is_gpg_key_installed(self.api_pub_key):
+        if os.path.exists(self.config.gpg_homedir):
+            if not self.is_gpg_key_installed(self.config.api_email):
                 self.install_api_pub_key()
             else:
                 log.debug("Twindb public key is already installed")
         else:
             log.info("Looks like GPG never ran. Initializing GPG configuration")
             try:
-                os.mkdir(self.gpg_homedir, 0700)
+                os.mkdir(self.config.gpg_homedir, 0700)
                 self.install_api_pub_key()
             except OSError as err:
-                log.error("Failed to create directory %s. %s" % (self.gpg_homedir, err))
-                raise TwinDBGPGException("Couldn't create directory " + self.gpg_homedir)
-        email = "%s@twindb.com" % self.server_id
+                log.error("Failed to create directory %s. %s" % (self.config.gpg_homedir, err))
+                raise TwinDBGPGException("Couldn't create directory " + self.config.gpg_homedir)
+        email = "%s@twindb.com" % self.config.server_id
         if not (self.is_gpg_key_installed(email) and self.is_gpg_key_installed(email, "private")):
             self.gen_entropy()
-            self.gen_gpg_keypair("%s@twindb.com" % self.server_id)
+            self.gen_gpg_keypair("%s@twindb.com" % self.config.server_id)
         log.debug("GPG config is OK")
         return True
 
@@ -122,7 +119,7 @@ class TwinDBGPG(object):
         log = self.logger
         if not email:
             raise TwinDBGPGException("Can not generate GPG keypair for an empty email")
-        gpg_cmd = ["gpg", "--homedir", self.gpg_homedir, "--batch", "--gen-key"]
+        gpg_cmd = ["gpg", "--homedir", self.config.gpg_homedir, "--batch", "--gen-key"]
         try:
             log.info("The agent needs to generate cryptographically strong keys.")
             log.info("Generating GPG keys pair for %s" % email)
@@ -140,7 +137,7 @@ Name-Email: %s
 Expire-Date: 0
 %%commit
 %%echo done
-    """ % (self.server_id, email)
+    """ % (self.config.server_id, email)
 
             p = subprocess.Popen(gpg_cmd, stdin=subprocess.PIPE)
             p.communicate(gpg_script)
@@ -159,16 +156,9 @@ Expire-Date: 0
         To read the encrypted message - decrypt and 64-base decode
         """
         log = self.logger
-        server_email = "%s@twindb.com" % self.server_id
-        if not self.is_gpg_key_installed(twindb.globals.api_email):
-            log.debug("Public key of %s is not installed." % twindb.globals.api_email)
-            log.debug("Will not encrypt message")
-            return None
-        if not self.is_gpg_key_installed(server_email):
-            log.debug("Public key of %s is not installed." % server_email)
-            log.debug("Will not encrypt message")
-            return None
-        enc_cmd = ["gpg", "--homedir", self.gpg_homedir, "-r", twindb.globals.api_email, "--batch", "--trust-model", "always",
+        server_email = "%s@twindb.com" % self.config.server_id
+        enc_cmd = ["gpg", "--homedir", self.config.gpg_homedir, "-r", self.config.api_email, "--batch",
+                   "--trust-model", "always",
                    "--armor", "--sign", "--local-user", server_email, "--encrypt"]
         cout = "No output"
         cerr = "No output"
@@ -207,7 +197,7 @@ Expire-Date: 0
             return None
         cout = "No output"
         cerr = "No output"
-        gpg_cmd = ["gpg", "--homedir", self.gpg_homedir, "-d", "-q"]
+        gpg_cmd = ["gpg", "--homedir", self.config.gpg_homedir, "-d", "-q"]
         try:
             log.debug("Decrypting message:")
             log.debug(msg_64)

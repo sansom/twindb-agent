@@ -1,23 +1,28 @@
+# -*- coding: utf-8 -*-
+
 """
-Global variabled
+Global variables
 """
 # global variables
-init_config = "/etc/twindb.cfg"
-host = "dispatcher.twindb.com"
-proto = "http"
-api_dir = ""
+config_file = "/etc/twindb.cfg"
+
 ssh_private_key_file = "/root/.ssh/twindb.key"
 ssh_public_key_file = "/root/.ssh/twindb.key.pub"
 ssh_port = 4194
+
 pid_file = "/var/run/twindb.pid"
 check_period = 1
 time_zone = "UTC"
 mysql_user = None
 mysql_password = None
-agent_version = "@@TWINDB_AGENT_VERSION@@"
+
+gpg_homedir = "/root/.gnupg/"
 
 api_email = "api@twindb.com"
-gpg_homedir = "/root/.gnupg/"
+api_host = "dispatcher.twindb.com"
+api_proto = "http"
+api_dir = ""
+api_uri = "api.php"
 api_pub_key = """
 -----BEGIN PGP PUBLIC KEY BLOCK-----
 Version: GnuPG v1
