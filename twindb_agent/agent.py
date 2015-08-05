@@ -65,9 +65,6 @@ class Agent(object):
     def unregister(self, delete_backups=False):
         twindb_agent.handlers.unregister(self.config, delete_backups=delete_backups, debug=self.debug)
 
-    def backup(self):
-        pass
-
     def is_registered(self):
         return twindb_agent.handlers.is_registered(self.config, self.debug)
 
