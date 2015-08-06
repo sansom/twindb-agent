@@ -25,25 +25,30 @@ class Agent(object):
         log.info("Agent is starting")
         while True:
             if self.is_registered():
+                log.error("Checking if there are any new job orders")
                 job_order = self.get_job_order()
                 if job_order:
                     log.info("Received job order %s" % json.dumps(job_order, indent=4, sort_keys=True))
                     job = twindb_agent.job.Job(job_order, self.config, debug=self.debug)
                     proc = multiprocessing.Process(target=job.process,
                                                    name="%s-%s" % (job_order["type"], job_order["job_id"]))
-                    proc.run()
+                    log.error("before run")
+                    proc.start()
+                    log.error("after run")
 
                 # Report replication status
+                log.error("Reporting replication status")
                 proc = multiprocessing.Process(target=twindb_agent.handlers.report_sss,
                                                name="report_sss",
                                                args=(self.config, self.debug))
-                proc.run()
+                proc.start()
 
                 # Report agent privileges
+                log.error("Reporting agent granted privileges")
                 proc = multiprocessing.Process(target=twindb_agent.handlers.report_agent_privileges,
                                                name="report_agent_privileges",
                                                args=(self.config, self.debug))
-                proc.run()
+                proc.start()
 
                 # Calling this has the side affect of “joining” any processes which have already finished.
                 multiprocessing.active_children()
@@ -70,3 +75,11 @@ class Agent(object):
 
     def get_job_order(self):
         return twindb_agent.handlers.get_job(self.config, self.debug)
+
+    def backup(self):
+        log = self.logger
+        if twindb_agent.handlers.schedule_backup(self.config, debug=self.debug):
+            job_order = self.get_job_order()
+            log.info("Received job order %s" % json.dumps(job_order, indent=4, sort_keys=True))
+            job = twindb_agent.job.Job(job_order, self.config, debug=self.debug)
+            job.process()

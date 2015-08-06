@@ -865,5 +865,34 @@ def take_backup_xtrabackup(agent_config, job_order, debug=False):
     return ret_code
 
 
+def schedule_backup(agent_config, debug=False):
+    """
+    Asks dispatcher to schedule a job for this server
+    """
+    log = twindb_agent.logging_remote.getlogger(__name__, agent_config, log_to_console=True, debug=debug)
+    http = twindb_agent.httpclient.TwinDBHTTPClient(agent_config, debug=debug)
+
+    data = {
+        "type": "schedule_backup",
+        "params": {}
+    }
+    log.debug("Schedule backup request:")
+    log.debug(data)
+    response = http.get_response(data)
+    if response:
+        jd = json.JSONDecoder()
+        r = jd.decode(response)
+        log.debug(r)
+        if r["success"]:
+            log.info("A backup job is successfully registered")
+            return True
+        else:
+            gpg = twindb_agent.gpg.TwinDBGPG(agent_config)
+            log.error("Failed to schedule a job: "
+                      + jd.decode(gpg.decrypt(r["response"]))["error"])
+            return False
+    else:
+        exit_on_error("Empty response from server")
+
 
 

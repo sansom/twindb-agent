@@ -28,7 +28,7 @@ def get_opt_parser():
     parser.add_option("--delete-backups", help="When unregistering TwinDB agent delete backups taken from this server",
                       action="store_true", dest="delete_backups", default=False)
     parser.add_option("--is-registered", help="Check if the agent is registered in TwinDB", action="store_true")
-    parser.add_option("--backup", help="Take backup copy now")
+    parser.add_option("--backup", help="Take backup copy now", action="store_true")
     parser.add_option("--debug", help="Print debug information to log",
                       action="store_true", dest="debug", default=False)
 
