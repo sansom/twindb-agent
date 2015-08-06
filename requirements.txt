@@ -1,2 +1,2 @@
 wheel==0.23.0
-mysql.connector
+mysql-connector-python==2.0.2

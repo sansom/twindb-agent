@@ -16,7 +16,7 @@ with open("HISTORY.rst") as history_file:
 
 requirements = [
     # TODO: put package requirements here
-    "mysql.connector"
+    "mysql-connector-python"
 ]
 
 test_requirements = [
