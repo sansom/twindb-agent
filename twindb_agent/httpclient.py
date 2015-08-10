@@ -5,18 +5,20 @@ Class that communicates to TwinDB dispatcher
 """
 import httplib
 import json
+import logging
 import socket
 import urllib
-import twindb_agent.logging_local
+import twindb_agent.config
 import twindb_agent.gpg
 
 
 class TwinDBHTTPClient(object):
-    def __init__(self, config, debug=False):
-        self.config = config
-        self.debug = debug
-
-        self.logger = twindb_agent.logging_local.getlogger(__name__, debug)
+    def __init__(self, logger=None):
+        self.config = twindb_agent.config.AgentConfig.get_config()
+        if logger:
+            self.logger = logger
+        else:
+            self.logger = logging.getLogger("twindb_local")
 
     def get_response(self, request):
         """
@@ -24,8 +26,7 @@ class TwinDBHTTPClient(object):
         It converts python data structure in "data" variable into JSON string,
         then encrypts it and then sends as variable "data" in HTTP request
         Inputs
-            uri     - URI to send the request
-            data    - Data structure with variables
+            request    - Data structure with variables
         Returns
             String with body of HTTP response
             None    - if error happened or empty response
@@ -48,7 +49,7 @@ class TwinDBHTTPClient(object):
             conn.connect()
             log.debug("Sending to " + self.config.api_host + ": %s" % json.dumps(request, indent=4, sort_keys=True))
             data_json = json.dumps(request)
-            gpg = twindb_agent.gpg.TwinDBGPG(self.config)
+            gpg = twindb_agent.gpg.TwinDBGPG()
             data_json_enc = gpg.encrypt(data_json)
             data_json_enc_urlenc = urllib.urlencode({'data': data_json_enc})
             conn.putrequest('POST', "/" + self.config.api_dir + "/" + self.config.api_uri)

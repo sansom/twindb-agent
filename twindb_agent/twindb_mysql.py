@@ -5,10 +5,11 @@ Classes and funtions to work with MySQL
 """
 import ConfigParser
 import getpass
+import logging
 import os
 import subprocess
 import pwd
-import twindb_agent.logging_remote
+import twindb_agent.config
 import twindb_agent.handlers
 from twindb_agent.utils import exit_on_error
 
@@ -22,12 +23,12 @@ except ImportError:
 
 
 class MySQL(object):
-    def __init__(self, agent_config, mysql_user=None, mysql_password=None, debug=False):
-        self.agent_config = agent_config
+    def __init__(self, mysql_user=None, mysql_password=None):
+        self.agent_config = twindb_agent.config.AgentConfig.get_config()
         self.mysql_user = mysql_user
         self.mysql_password = mysql_password
-        self.debug = debug
-        self.logger = twindb_agent.logging_remote.getlogger(__name__, agent_config, debug=debug)
+
+        self.logger = logging.getLogger("twindb_remote")
 
     def get_mysql_connection(self):
         """
@@ -236,7 +237,7 @@ class MySQL(object):
         """
         Creates local MySQL user for twindb agent
         """
-        config = twindb_agent.handlers.get_config(self.agent_config, debug=self.debug)
+        config = twindb_agent.handlers.get_config()
         log = self.logger
         try:
             conn = self.get_mysql_connection()
@@ -249,4 +250,3 @@ class MySQL(object):
             exit_on_error("Failed to create MySQL user %s@localhost for TwinDB agent" % config["mysql_user"])
         log.info("Created MySQL user %s@localhost for TwinDB agent" % config["mysql_user"])
         return True
-

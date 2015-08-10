@@ -3,19 +3,19 @@
 """
 Classes to work with jobs
 """
+import logging
 import time
-import twindb_agent.logging_remote
+import twindb_agent.config
 import twindb_agent.twindb_mysql
 import twindb_agent.handlers
 
 
 class Job(object):
-    def __init__(self, job_order, agent_config, debug=False):
+    def __init__(self, job_order):
         self.job_order = job_order
-        self.agent_config = agent_config
-        self.debug = debug
-        self.logger = twindb_agent.logging_remote.getlogger(__name__, agent_config, debug=debug)
-        self.server_config = twindb_agent.handlers.get_config(agent_config)
+        self.agent_config = twindb_agent.config.AgentConfig.get_config()
+        self.logger = logging.getLogger("twindb_remote")
+        self.server_config = twindb_agent.handlers.get_config()
 
     def process(self):
         """
@@ -32,7 +32,7 @@ class Job(object):
         log_params = {"job_id": job_id}
 
         try:
-            mysql = twindb_agent.twindb_mysql.MySQL(self.agent_config, debug=self.debug)
+            mysql = twindb_agent.twindb_mysql.MySQL()
             mysql_access_available, missing_mysql_privileges = mysql.has_mysql_access(grant_capability=False)
             if not mysql_access_available:
                 log.error("The MySQL user %s does not have all the required privileges." % username, log_params)
@@ -43,8 +43,7 @@ class Job(object):
             if not self.job_order["start_scheduled"]:
                 raise JobError("Job start time isn't set")
 
-            if not twindb_agent.handlers.log_job_notify(agent_config=self.agent_config,
-                                                        params={"event": "start_job",
+            if not twindb_agent.handlers.log_job_notify(params={"event": "start_job",
                                                                 "job_id": job_id}):
                 raise JobError("Failed to notify dispatcher about job start")
 
@@ -68,15 +67,13 @@ class Job(object):
 
             log.info("job_id = %d finished with code %d" % (job_id, ret), log_params)
 
-            twindb_agent.handlers.log_job_notify(agent_config=self.agent_config,
-                                                 params={"event": "stop_job",
+            twindb_agent.handlers.log_job_notify(params={"event": "stop_job",
                                                          "job_id": job_id,
                                                          "ret_code": ret})
         except JobError as err:
             log.error("Job error: %s", err, log_params)
 
-            twindb_agent.handlers.log_job_notify(agent_config=self.agent_config,
-                                                 params={"event": "stop_job",
+            twindb_agent.handlers.log_job_notify(params={"event": "stop_job",
                                                          "job_id": job_id,
                                                          "ret_code": -1})
             return False
@@ -86,14 +83,14 @@ class Job(object):
         return True
 
     def send_key(self):
-        return twindb_agent.handlers.send_key(agent_config=self.agent_config,
-                                              job_order=self.job_order,
-                                              debug=self.debug)
+        return twindb_agent.handlers.send_key(job_order=self.job_order)
 
     def take_backup(self):
-        return twindb_agent.handlers.take_backup(self.agent_config, self.job_order, debug=self.debug)
+        return twindb_agent.handlers.take_backup(self.job_order)
 
     def restore_backup(self):
+        if self:
+            pass
         return 0
 
 

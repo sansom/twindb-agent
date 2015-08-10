@@ -1,23 +1,26 @@
 # -*- coding: utf-8 -*-
 import json
+import logging
 import os
 import subprocess
 import sys
 from datetime import datetime
 import tempfile
+import fcntl
+import twindb_agent.config
 import twindb_agent.httpclient
 import twindb_agent.gpg
-import twindb_agent.logging_remote
 import twindb_agent.twindb_mysql
 from twindb_agent.utils import exit_on_error
 
 
-def get_config(agent_config, debug=False):
+def get_config():
     """
     Gets backup config from TwinDB dispatcher
     :return: Backup config or None if error happened
     """
-    log = twindb_agent.logging_remote.getlogger(__name__, agent_config.server_id, debug=debug)
+    agent_config = twindb_agent.config.AgentConfig.get_config()
+    log = logging.getLogger("twindb_remote")
     log.debug("Getting config for server_id = %s" % agent_config.server_id)
     response_body = "Empty response"
     config = None
@@ -28,14 +31,14 @@ def get_config(agent_config, debug=False):
                 "server_id": agent_config.server_id
             }
         }
-        http = twindb_agent.httpclient.TwinDBHTTPClient(agent_config, debug=debug)
+        http = twindb_agent.httpclient.TwinDBHTTPClient()
         response_body = http.get_response(data)
         if not response_body:
             return None
         d = json.JSONDecoder()
         response_body_decoded = d.decode(response_body)
         if response_body_decoded:
-            gpg = twindb_agent.gpg.TwinDBGPG(agent_config)
+            gpg = twindb_agent.gpg.TwinDBGPG()
             msg_decrypted = gpg.decrypt(response_body_decoded["response"])
             msg_pt = d.decode(msg_decrypted)
             config = msg_pt["data"]
@@ -50,23 +53,23 @@ def get_config(agent_config, debug=False):
     return config
 
 
-def get_job(agent_config, debug=False):
+def get_job():
     """
     Gets job order from TwinDB dispatcher
     :return: Job order in python dictionary or None if error happened
     """
-    server_id = agent_config.server_id
-    log = twindb_agent.logging_remote.getlogger(__name__, agent_config, debug=debug)
+    agent_config = twindb_agent.config.AgentConfig.get_config()
+    log = logging.getLogger("twindb_remote")
     job = None
-    log.debug("Getting job for server_id = %s" % server_id)
+    log.debug("Getting job for server_id = %s" % agent_config.server_id)
     try:
         d = json.JSONDecoder()
         data = {
             "type": "get_job",
             "params": {}
         }
-        http = twindb_agent.httpclient.TwinDBHTTPClient(agent_config, debug=debug)
-        gpg = twindb_agent.gpg.TwinDBGPG(agent_config, debug=debug)
+        http = twindb_agent.httpclient.TwinDBHTTPClient()
+        gpg = twindb_agent.gpg.TwinDBGPG()
         response_body = http.get_response(data)
         if not response_body:
             log.error("Empty response from dispatcher")
@@ -104,12 +107,13 @@ def get_job(agent_config, debug=False):
     return job
 
 
-def is_registered(agent_config, debug=False):
+def is_registered():
     """
     Checks whether the server is registered or not
     :return: True if registered, False if not so much
     """
-    log = twindb_agent.logging_remote.getlogger(__name__, agent_config, debug=debug)
+    agent_config = twindb_agent.config.AgentConfig.get_config()
+    log = logging.getLogger("twindb_remote")
     log.debug("Getting registration status for server_id = %s" % agent_config.server_id)
 
     twindb_email = "%s@twindb.com" % agent_config.server_id
@@ -135,8 +139,8 @@ def is_registered(agent_config, debug=False):
                 "enc_public_key": enc_public_key
             }
         }
-        http = twindb_agent.httpclient.TwinDBHTTPClient(agent_config, debug=debug)
-        gpg = twindb_agent.gpg.TwinDBGPG(agent_config, debug=debug)
+        http = twindb_agent.httpclient.TwinDBHTTPClient()
+        gpg = twindb_agent.gpg.TwinDBGPG()
         response_body = http.get_response(data)
         if not response_body:
             return False
@@ -166,21 +170,19 @@ def is_registered(agent_config, debug=False):
     return False
 
 
-def register(code, agent_config, debug=False):
+def register(code):
     """
-    Registers this server in TwinDB dispatcher
-    Inputs
-      code    - string with secret registration code
-    Returns
-      True    - if server was successfully registered
-    Exits if error happened
+    Register this server in TwinDB dispatcher. Exits if error happened
+    :param code: string with a secret registration code
+    :return: True - if server was successfully registered
     """
-    log = twindb_agent.logging_remote.getlogger(__name__, agent_config, log_to_console=True, debug=debug)
-    http = twindb_agent.httpclient.TwinDBHTTPClient(agent_config, debug=debug)
-    gpg = twindb_agent.gpg.TwinDBGPG(agent_config, debug=debug)
+    agent_config = twindb_agent.config.AgentConfig.get_config()
+    log = logging.getLogger("twindb_console")
+    http = twindb_agent.httpclient.TwinDBHTTPClient()
+    gpg = twindb_agent.gpg.TwinDBGPG()
 
     # Check that the agent can connect to local MySQL
-    mysql = twindb_agent.twindb_mysql.MySQL(agent_config, debug=debug)
+    mysql = twindb_agent.twindb_mysql.MySQL()
     conn = mysql.get_mysql_connection()
     if conn:
         cursor = conn.cursor()
@@ -299,14 +301,14 @@ def register(code, agent_config, debug=False):
     return True
 
 
-def commit_registration(agent_config, debug=False):
+def commit_registration():
     """
     Confirms that agent successfully created local MySQL user.
     :return:
     """
-    log = twindb_agent.logging_remote.getlogger(__name__, agent_config, debug=debug)
-    http = twindb_agent.httpclient.TwinDBHTTPClient(agent_config, debug=debug)
-    gpg = twindb_agent.gpg.TwinDBGPG(agent_config, debug=debug)
+    log = logging.getLogger("twindb_console")
+    http = twindb_agent.httpclient.TwinDBHTTPClient()
+    gpg = twindb_agent.gpg.TwinDBGPG()
 
     data = {
         "type": "confirm_registration",
@@ -335,15 +337,15 @@ def commit_registration(agent_config, debug=False):
     return True
 
 
-def log_job_notify(agent_config, params, debug=False):
+def log_job_notify(params):
     """
     Notifies a job event to TwinDB dispatcher
     :param params: { event: "start_job", job_id: job_id } or
              { event: "stop_job", job_id: job_id, ret_code: ret }
     :return: True of False if error happened
     """
-    log = twindb_agent.logging_remote.getlogger(__name__, agent_config, debug=debug)
-    http = twindb_agent.httpclient.TwinDBHTTPClient(agent_config, debug=debug)
+    log = logging.getLogger("twindb_remote")
+    http = twindb_agent.httpclient.TwinDBHTTPClient()
 
     log.info("Sending event notification %s" % params["event"])
     data = {
@@ -366,25 +368,23 @@ def log_job_notify(agent_config, params, debug=False):
     return result
 
 
-def report_sss(agent_config, debug=False):
+def report_sss():
     """
     Reports slave status to TwinDB dispatcher
-    :param agent_config:
     :return: nothing
     """
-    log = twindb_agent.logging_remote.getlogger(__name__, agent_config, debug=debug)
-    http = twindb_agent.httpclient.TwinDBHTTPClient(agent_config, debug=debug)
+    agent_config = twindb_agent.config.AgentConfig.get_config()
+    log = logging.getLogger("twindb_remote")
+    http = twindb_agent.httpclient.TwinDBHTTPClient()
 
     log.debug("Reporting SHOW SLAVE STATUS for server_id = %s" % agent_config.server_id)
 
-    server_config = get_config(agent_config)
+    server_config = get_config()
     if not server_config:
         log.error("Failed to get server config from dispatcher")
         return
-    mysql = twindb_agent.twindb_mysql.MySQL(agent_config,
-                                            mysql_user=server_config["mysql_user"],
-                                            mysql_password=server_config["mysql_password"],
-                                            debug=debug)
+    mysql = twindb_agent.twindb_mysql.MySQL(mysql_user=server_config["mysql_user"],
+                                            mysql_password=server_config["mysql_password"])
     ss = mysql.get_slave_status()
     try:
         data = {
@@ -406,25 +406,23 @@ def report_sss(agent_config, debug=False):
     return
 
 
-def report_agent_privileges(agent_config, debug=False):
+def report_agent_privileges():
     """
     Reports what privileges are given to the agent
-    :param agent_config:
     :return: nothing
     """
-    log = twindb_agent.logging_remote.getlogger(__name__, agent_config, debug=debug)
-    http = twindb_agent.httpclient.TwinDBHTTPClient(agent_config, debug=debug)
+    agent_config = twindb_agent.config.AgentConfig.get_config()
+    log = logging.getLogger("twindb_remote")
+    http = twindb_agent.httpclient.TwinDBHTTPClient()
 
     log.debug("Reporting agent privileges for server_id = %s" % agent_config.server_id)
 
-    server_config = get_config(agent_config)
+    server_config = get_config()
     if not server_config:
         log.error("Failed to get server config from dispatcher")
         return
-    mysql = twindb_agent.twindb_mysql.MySQL(agent_config,
-                                            mysql_user=server_config["mysql_user"],
-                                            mysql_password=server_config["mysql_password"],
-                                            debug=debug)
+    mysql = twindb_agent.twindb_mysql.MySQL(mysql_user=server_config["mysql_user"],
+                                            mysql_password=server_config["mysql_password"])
 
     try:
         con = mysql.get_mysql_connection()
@@ -468,14 +466,14 @@ def report_agent_privileges(agent_config, debug=False):
     return
 
 
-def send_key(agent_config, job_order, debug=False):
+def send_key(job_order):
     """
     Processes send_key job
-    :param agent_config:
     :return: nothing
     """
-    log = twindb_agent.logging_remote.getlogger(__name__, agent_config, debug=debug)
-    http = twindb_agent.httpclient.TwinDBHTTPClient(agent_config, debug=debug)
+    agent_config = twindb_agent.config.AgentConfig.get_config()
+    log = logging.getLogger("twindb_remote")
+    http = twindb_agent.httpclient.TwinDBHTTPClient()
 
     # Get owner of the GPG key
     cmd_1 = ["gpg", "--list-packets"]
@@ -548,15 +546,15 @@ def send_key(agent_config, job_order, debug=False):
         return -1
 
 
-def unregister(agent_config, delete_backups=False, debug=False):
+def unregister(delete_backups=False):
     """
     Unregisters this server in TwinDB dispatcher
     Returns
       True    - if server was successfully unregistered
       False   - if error happened
     """
-    log = twindb_agent.logging_remote.getlogger(__name__, agent_config, log_to_console=True, debug=debug)
-    http = twindb_agent.httpclient.TwinDBHTTPClient(agent_config, debug=debug)
+    log = logging.getLogger("twindb_console")
+    http = twindb_agent.httpclient.TwinDBHTTPClient()
 
     data = {
         "type": "unregister",
@@ -575,47 +573,44 @@ def unregister(agent_config, delete_backups=False, debug=False):
             log.info("The server is successfully unregistered")
             return True
         else:
-            gpg = twindb_agent.gpg.TwinDBGPG(agent_config)
+            gpg = twindb_agent.gpg.TwinDBGPG()
             exit_on_error("Failed to unregister the agent: " + jd.decode(gpg.decrypt(r["response"]))["error"])
     else:
         exit_on_error("Empty response from server")
     return False
 
 
-def take_backup(agent_config, job_order, debug=False):
+def take_backup(job_order):
     """
     Meta function that calls actual backup fucntion depending on tool in backup config
-    :param agent_config:
     :param job_order:
     :return: what actual backup function returned or -1 if the tool is not supported
     """
-    log = twindb_agent.logging_remote.getlogger(__name__, agent_config, debug=debug)
-    log.info("Starting backup job")
-    ret = take_backup_xtrabackup(agent_config, job_order, debug)
-    log.info("Backup job is complete")
+    log = logging.getLogger("twindb_remote")
+    log_params = {"job_id": job_order["job_id"]}
+    log.info("Starting backup job", log_params)
+    ret = take_backup_xtrabackup(job_order)
+    log.info("Backup job is complete", log_params)
     return ret
 
 
-def take_backup_xtrabackup(agent_config, job_order, debug=False):
+def take_backup_xtrabackup(job_order):
     """
     # Takes backup copy with XtraBackup
-    :param agent_config:
     :param job_order: job order
     :return: True if backup was successfully taken or False if it has failed
     """
-    log = twindb_agent.logging_remote.getlogger(__name__, agent_config, debug=debug)
-    server_config = get_config(agent_config)
-    mysql = twindb_agent.twindb_mysql.MySQL(agent_config,
-                                            mysql_user=server_config["mysql_user"],
-                                            mysql_password=server_config["mysql_password"],
-                                            debug=debug)
-    http = twindb_agent.httpclient.TwinDBHTTPClient(agent_config, debug=debug)
+    agent_config = twindb_agent.config.AgentConfig.get_config()
+    log = logging.getLogger("twindb_remote")
+    log_params = {"job_id": job_order["job_id"]}
+    server_config = get_config()
+    mysql = twindb_agent.twindb_mysql.MySQL(mysql_user=server_config["mysql_user"],
+                                            mysql_password=server_config["mysql_password"])
+    http = twindb_agent.httpclient.TwinDBHTTPClient()
 
     def start_ssh_cmd(file_name, stdin, stderr):
         """
         Starts an SSH process to TwinDB storage and saves input in file backup_name
-        :param config: backup config
-        :param job_params: job parameters
         :param file_name: file name to save input in
         :param stdin: respective IO handlers
         :param stderr: respective IO handlers
@@ -628,10 +623,10 @@ def take_backup_xtrabackup(agent_config, job_order, debug=False):
                    "user_id_%s@%s" % (server_config["user_id"], job_order["params"]["ip"]),
                    "/bin/cat - > %s" % file_name]
         try:
-            log.debug("Starting SSH process: %r" % ssh_cmd)
+            log.debug("Starting SSH process: %r" % ssh_cmd, log_params)
             ssh_process = subprocess.Popen(ssh_cmd, stdin=stdin, stdout=subprocess.PIPE, stderr=stderr)
         except OSError as e:
-            log.error("Failed to run command %r. %s" % (ssh_cmd, e))
+            log.error("Failed to run command %r. %s" % (ssh_cmd, e), log_params)
         return ssh_process
 
     def start_gpg_cmd(stdin, stderr):
@@ -642,13 +637,14 @@ def take_backup_xtrabackup(agent_config, job_order, debug=False):
         :return: what GPG process returns
         """
         gpg_process = None
-        gpg_cmd = ["gpg", "--homedir", agent_config.gpg_homedir, "--encrypt", "--yes", "--batch", "--no-permission-warning",
+        gpg_cmd = ["gpg", "--homedir", agent_config.gpg_homedir, "--encrypt", "--yes", "--batch",
+                   "--no-permission-warning",
                    "--quiet", "--recipient", agent_config.server_id]
         try:
-            log.debug("Starting GPG process: %r" % gpg_cmd)
+            log.debug("Starting GPG process: %r" % gpg_cmd, log_params)
             gpg_process = subprocess.Popen(gpg_cmd, stdin=stdin, stdout=subprocess.PIPE, stderr=stderr)
         except OSError as e:
-            log.error("Failed to run command %r. %s" % (gpg_cmd, e))
+            log.error("Failed to run command %r. %s" % (gpg_cmd, e), log_params)
         return gpg_process
 
     def grep_lsn(output):
@@ -667,17 +663,15 @@ def take_backup_xtrabackup(agent_config, job_order, debug=False):
         """
         Saves details about backup copy in TwinDB dispatcher
         :param name: name of backup
-        :param vol_id: id of a volume where the backup copy is saved
         :param size: size of the backup in bytes
         :param backup_lsn: last LSN if it was incremental backup
-        :param parent: Ansector of the backup (not used now)
         :return: JSON string with status of the request i.e. { "success": True } or None if error happened
         """
-        log.info("Saving information about backup:")
-        log.info("File name : %s" % name)
-        log.info("Volume id : %d" % int(job_order["params"]["volume_id"]))
-        log.info("Size      : %d (%s)" % (int(size), twindb_agent.utils.h_size(size)))
-        log.info("Ancestor  : %d" % int(job_order["params"]["ancestor"]))
+        log.info("Saving information about backup:", log_params)
+        log.info("File name : %s" % name, log_params)
+        log.info("Volume id : %d" % int(job_order["params"]["volume_id"]), log_params)
+        log.info("Size      : %d (%s)" % (int(size), twindb_agent.utils.h_size(size)), log_params)
+        log.info("Ancestor  : %d" % int(job_order["params"]["ancestor"]), log_params)
         data = {
             "type": "update_backup_data",
             "params": {
@@ -689,7 +683,7 @@ def take_backup_xtrabackup(agent_config, job_order, debug=False):
                 "ancestor": job_order["params"]["ancestor"]
             }
         }
-        log.debug("Saving a record %s" % data)
+        log.debug("Saving a record %s" % data, log_params)
 
         response = http.get_response(data)
         if response:
@@ -697,21 +691,20 @@ def take_backup_xtrabackup(agent_config, job_order, debug=False):
             r = jd.decode(response)
             log.debug(r)
             if r["success"]:
-                log.info("Saved backup copy details")
+                log.info("Saved backup copy details", log_params)
                 return True
             else:
-                gpg = twindb_agent.gpg.TwinDBGPG(agent_config)
-                log.error("Failed to save backup copy details: "
-                             + jd.decode(gpg.decrypt(r["response"]))["error"])
+                gpg = twindb_agent.gpg.TwinDBGPG()
+                log.error("Failed to save backup copy details: " + jd.decode(gpg.decrypt(r["response"]))["error"],
+                          log_params)
                 return False
         else:
-            log.error("Empty response from server")
+            log.error("Empty response from server", log_params)
             return False
 
-    def gen_extra_config(config):
+    def gen_extra_config():
         """
         Generates MySQL config with datadir option
-        :param config: backup config
         :return: File name with MySQL config or None if error happened
         """
         try:
@@ -725,7 +718,7 @@ def take_backup_xtrabackup(agent_config, job_order, debug=False):
             cur.close()
             os.close(fd)
         except IOError as e:
-            log.error("Failed to generate extra defaults file. %s" % e)
+            log.error("Failed to generate extra defaults file. %s" % e, log_params)
             e_cfg = None
         return e_cfg
 
@@ -735,7 +728,7 @@ def take_backup_xtrabackup(agent_config, job_order, debug=False):
         :param file_name: file name with backup
         :return: size of backup in bytes or zeor if error happened
         """
-        log.debug("Getting size of %s" % backup_name)
+        log.debug("Getting size of %s" % backup_name, log_params)
         ssh_cmd = ["ssh", "-oStrictHostKeyChecking=no", "-i", agent_config.ssh_private_key_file,
                    "-p", str(agent_config.ssh_port),
                    "user_id_%s@%s" % (server_config["user_id"], job_order["params"]["ip"]), "/bin/du -b %s" % file_name]
@@ -744,39 +737,41 @@ def take_backup_xtrabackup(agent_config, job_order, debug=False):
             cout, cerr = process.communicate()
 
             if process.returncode != 0:
-                raise subprocess.CalledProcessError(process.returncode, ' '.join(ssh_cmd), cout)
+                raise subprocess.CalledProcessError(process.returncode, "%s: %s" % (' '.join(ssh_cmd), cout))
 
             cout_lines = cout.split()
             if len(cout_lines) < 1:
-                raise subprocess.CalledProcessError(process.returncode, ' '.join(ssh_cmd), cout)
+                raise subprocess.CalledProcessError(process.returncode, "%s: %s" % (' '.join(ssh_cmd), cout))
 
             backup_size = int(cout_lines[0])
         except subprocess.CalledProcessError as e:
-            log.error("Failed to get size of backup %s" % backup_name)
+            log.error("Failed to get size of backup %s" % backup_name, log_params)
             log.error(str(e))
             return 0
         except OSError as e:
-            log.error("Failed to get size of backup %s" % backup_name)
-            log.error("Failed to run command %r: %s" % (ssh_cmd, e))
+            log.error("Failed to get size of backup %s" % backup_name, log_params)
+            log.error("Failed to run command %r: %s" % (ssh_cmd, e), log_params)
             return 0
-        log.debug("Size of %s = %d bytes (%s)" % (backup_name, backup_size, twindb_agent.utils.h_size(backup_size)))
+        log.debug("Size of %s = %d bytes (%s)" % (backup_name, backup_size, twindb_agent.utils.h_size(backup_size)),
+                  log_params)
         return backup_size
 
     suffix = "xbstream"
     backup_name = "server_id_%s_%s.%s.gpg" % (agent_config.server_id, datetime.now().isoformat(), suffix)
     ret_code = 0
     if "params" not in job_order:
-        log.error("There are no params in the job order")
+        log.error("There are no params in the job order", log_params)
         return -1
     # Check that job order has all required parameters
     mandatory_params = ["ancestor", "backup_type", "ip", "lsn", "type", "volume_id"]
     for param in mandatory_params:
         if param not in job_order["params"]:
-            log.error("There is no %s in the job order" % param)
+            log.error("There is no %s in the job order" % param, log_params)
             return -1
     backup_type = job_order["params"]["backup_type"]
-    mysql = twindb_agent.twindb_mysql.MySQL(agent_config, debug=debug)
-    server_config = get_config(agent_config)
+    mysql = twindb_agent.twindb_mysql.MySQL(mysql_user=agent_config.mysql_user,
+                                            mysql_password=agent_config.mysql_password)
+    server_config = get_config()
     xtrabackup_cmd = [
         "innobackupex",
         "--stream=xbstream",
@@ -793,7 +788,7 @@ def take_backup_xtrabackup(agent_config, job_order, debug=False):
         xtrabackup_cmd.append("--incremental-lsn=%s" % last_lsn)
     else:
         xtrabackup_cmd.append(".")
-    extra_config = gen_extra_config(server_config)
+    extra_config = gen_extra_config()
     if extra_config:
         xtrabackup_cmd.append("--defaults-extra-file=%s" % extra_config)
     err_descriptors = dict()
@@ -802,13 +797,15 @@ def take_backup_xtrabackup(agent_config, job_order, debug=False):
         try:
             err_descriptors[desc] = open(desc_file, "w+")
         except IOError as err:
-            log.error("Failed to open file %s. %s" % (desc_file, err))
+            log.error("Failed to open file %s. %s" % (desc_file, err), log_params)
             return -1
+    # Grab an exclusive lock to make sure only one XtrBackup process is runnning
+    fcntl.flock(err_descriptors["xtrabackup"], fcntl.LOCK_EX)
     try:
-        log.debug("Starting XtraBackup process: %r" % xtrabackup_cmd)
+        log.debug("Starting XtraBackup process: %r" % xtrabackup_cmd, log_params)
         xbk_proc = subprocess.Popen(xtrabackup_cmd, stdout=subprocess.PIPE, stderr=err_descriptors["xtrabackup"])
     except OSError as err:
-        log.error("Failed to run command %r. %s" % (xtrabackup_cmd, err))
+        log.error("Failed to run command %r. %s" % (xtrabackup_cmd, err), log_params)
         return -1
     gpg_proc = start_gpg_cmd(xbk_proc.stdout, err_descriptors["gpg"])
     ssh_proc = start_ssh_cmd(backup_name, gpg_proc.stdout, err_descriptors["ssh"])
@@ -838,39 +835,43 @@ def take_backup_xtrabackup(agent_config, job_order, debug=False):
     if ret_code_xbk == 0 and ret_code_gpg == 0 and ret_code_ssh == 0:
         lsn = grep_lsn(err_str["xtrabackup"])
         if not lsn:
-            log.error("Could not find LSN in XtrabBackup output")
+            log.error("Could not find LSN in XtrabBackup output", log_params)
             return -1
         file_size = get_backup_size(backup_name)
         if not file_size:
-            log.error("Backup copy size must not be zero")
+            log.error("Backup copy size must not be zero", log_params)
             return -1
         if not record_backup(backup_name, file_size, lsn):
-            log.error("Failed to save backup copy details")
+            log.error("Failed to save backup copy details", log_params)
             return -1
     else:
         if ret_code_xbk != 0:
-            log.error("XtraBackup exited with code %d" % ret_code_xbk)
+            log.error("XtraBackup exited with code %d" % ret_code_xbk, log_params)
         if ret_code_gpg != 0:
-            log.error("GPG exited with code %d" % ret_code_gpg)
+            log.error("GPG exited with code %d" % ret_code_gpg, log_params)
         if ret_code_ssh != 0:
-            log.error("SSH exited with code %d" % ret_code_ssh)
-        log.error("Failed to take backup")
+            log.error("SSH exited with code %d" % ret_code_ssh, log_params)
+        log.error("Failed to take backup", log_params)
         return -1
+
+    for desc in ["gpg", "ssh", "xtrabackup"]:
+        err_descriptors[desc].close()
+
     for f in [extra_config, "/tmp/twindb.xtrabackup.err", "/tmp/twindb.gpg.err", "/tmp/twindb.ssh.err"]:
         if os.path.isfile(f):
             try:
                 os.remove(f)
             except IOError as err:
-                log.error("Failed to remove file %s. %s" % (f, err))
+                log.error("Failed to remove file %s. %s" % (f, err), log_params)
     return ret_code
 
 
-def schedule_backup(agent_config, debug=False):
+def schedule_backup():
     """
     Asks dispatcher to schedule a job for this server
     """
-    log = twindb_agent.logging_remote.getlogger(__name__, agent_config, log_to_console=True, debug=debug)
-    http = twindb_agent.httpclient.TwinDBHTTPClient(agent_config, debug=debug)
+    log = logging.getLogger("twindb_console")
+    http = twindb_agent.httpclient.TwinDBHTTPClient()
 
     data = {
         "type": "schedule_backup",
@@ -887,12 +888,9 @@ def schedule_backup(agent_config, debug=False):
             log.info("A backup job is successfully registered")
             return True
         else:
-            gpg = twindb_agent.gpg.TwinDBGPG(agent_config)
+            gpg = twindb_agent.gpg.TwinDBGPG()
             log.error("Failed to schedule a job: "
                       + jd.decode(gpg.decrypt(r["response"]))["error"])
             return False
     else:
         exit_on_error("Empty response from server")
-
-
-

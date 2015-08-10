@@ -3,15 +3,15 @@
 """
 Auxilary functions
 """
+import logging
 import os
 import traceback
 
-import twindb_agent.logging_local
 import errno
 import time
 import sys
 
-log = twindb_agent.logging_local.getlogger(__name__, log_to_console=True)
+log = logging.getLogger("twindb_local")
 
 
 def h_size(num, decimals=2):

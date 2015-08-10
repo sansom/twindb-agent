@@ -10,6 +10,8 @@ import twindb_agent.globals
 
 
 class AgentConfig(object):
+    _instance = None
+
     def __init__(self,
                  ssh_private_key_file=None,
                  ssh_public_key_file=None,
@@ -128,7 +130,7 @@ class AgentConfig(object):
             f = open(self.config_file, "w")
             for var in self.__dict__:
                 var = str(var)
-                if not var.startswith("__") and var != "mysql_user" and var != "mysql_password":
+                if not var.startswith("__") and var not in ["mysql_user", "mysql_password"]:
                     if isinstance(self.__dict__[var], int):
                         f.write("%s = %d\n" % (var, self.__dict__[var]))
                     else:
@@ -140,6 +142,41 @@ class AgentConfig(object):
         except IOError as err:
             raise AgentConfigException("Failed to save new config in %s. %s" % (self.config_file, err))
         return True
+
+    @staticmethod
+    def get_config(ssh_private_key_file=None,
+                   ssh_public_key_file=None,
+                   ssh_port=None,
+                   pid_file=None,
+                   check_period=None,
+                   time_zone=None,
+                   mysql_user=None,
+                   mysql_password=None,
+                   gpg_homedir=None,
+                   api_email=None,
+                   api_host=None,
+                   api_proto=None,
+                   api_dir=None,
+                   api_uri=None,
+                   api_pub_key=None):
+        if not AgentConfig._instance:
+            AgentConfig._instance = AgentConfig(ssh_private_key_file,
+                                                ssh_public_key_file,
+                                                ssh_port,
+                                                pid_file,
+                                                check_period,
+                                                time_zone,
+                                                mysql_user,
+                                                mysql_password,
+                                                gpg_homedir,
+                                                api_email,
+                                                api_host,
+                                                api_proto,
+                                                api_dir,
+                                                api_uri,
+                                                api_pub_key)
+
+        return AgentConfig._instance
 
 
 class AgentConfigException(Exception):

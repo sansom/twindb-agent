@@ -4,15 +4,16 @@
 Classes and functions for cryptography
 """
 from base64 import b64encode, b64decode
+import logging
 import os
 import subprocess
-import twindb_agent.logging_local
+import twindb_agent.config
 
 
 class TwinDBGPG(object):
-    def __init__(self, config, debug=False):
-        self.config = config
-        self.logger = twindb_agent.logging_local.getlogger(__name__, debug=debug)
+    def __init__(self):
+        self.config = twindb_agent.config.AgentConfig.get_config()
+        self.logger = logging.getLogger("twindb_local")
         self.check_gpg()
 
     def is_gpg_key_installed(self, email, key_type="public"):

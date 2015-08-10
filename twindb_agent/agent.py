@@ -1,22 +1,21 @@
 # -*- coding: utf-8 -*-
 import json
-
+import logging
 import multiprocessing
 import time
 import sys
 
 import twindb_agent.job
-import twindb_agent.logging_remote
 import twindb_agent.gpg
 import twindb_agent.handlers
+import twindb_agent.config
 
 
 class Agent(object):
-    def __init__(self, config, debug=False):
-        self.config = config
-        self.debug = debug
-        self.logger = twindb_agent.logging_remote.getlogger(__name__, config, debug)
-        self.gpg = twindb_agent.gpg.TwinDBGPG(config, debug=debug)
+    def __init__(self):
+        self.config = twindb_agent.config.AgentConfig.get_config()
+        self.logger = logging.getLogger("twindb_remote")
+        self.gpg = twindb_agent.gpg.TwinDBGPG()
         self.logger.debug("Agent initialized")
         pass
 
@@ -25,29 +24,25 @@ class Agent(object):
         log.info("Agent is starting")
         while True:
             if self.is_registered():
-                log.error("Checking if there are any new job orders")
+                log.debug("Checking if there are any new job orders")
                 job_order = self.get_job_order()
                 if job_order:
                     log.info("Received job order %s" % json.dumps(job_order, indent=4, sort_keys=True))
-                    job = twindb_agent.job.Job(job_order, self.config, debug=self.debug)
+                    job = twindb_agent.job.Job(job_order)
                     proc = multiprocessing.Process(target=job.process,
                                                    name="%s-%s" % (job_order["type"], job_order["job_id"]))
-                    log.error("before run")
                     proc.start()
-                    log.error("after run")
 
                 # Report replication status
-                log.error("Reporting replication status")
+                log.debug("Reporting replication status")
                 proc = multiprocessing.Process(target=twindb_agent.handlers.report_sss,
-                                               name="report_sss",
-                                               args=(self.config, self.debug))
+                                               name="report_sss")
                 proc.start()
 
                 # Report agent privileges
-                log.error("Reporting agent granted privileges")
+                log.debug("Reporting agent granted privileges")
                 proc = multiprocessing.Process(target=twindb_agent.handlers.report_agent_privileges,
-                                               name="report_agent_privileges",
-                                               args=(self.config, self.debug))
+                                               name="report_agent_privileges")
                 proc.start()
 
                 # Calling this has the side affect of “joining” any processes which have already finished.
@@ -63,23 +58,34 @@ class Agent(object):
             proc.terminate()
         sys.exit(0)
 
-    def register(self, reg_code):
-        if twindb_agent.handlers.register(reg_code, agent_config=self.config, debug=self.debug):
-            twindb_agent.handlers.commit_registration(agent_config=self.config, debug=self.debug)
+    @staticmethod
+    def register(reg_code):
+        if twindb_agent.handlers.register(reg_code):
+            twindb_agent.handlers.commit_registration()
 
-    def unregister(self, delete_backups=False):
-        twindb_agent.handlers.unregister(self.config, delete_backups=delete_backups, debug=self.debug)
+    @staticmethod
+    def unregister(delete_backups=False):
+        twindb_agent.handlers.unregister(delete_backups=delete_backups)
 
-    def is_registered(self):
-        return twindb_agent.handlers.is_registered(self.config, self.debug)
+    @staticmethod
+    def is_registered():
+        return twindb_agent.handlers.is_registered()
 
-    def get_job_order(self):
-        return twindb_agent.handlers.get_job(self.config, self.debug)
+    @staticmethod
+    def get_job_order():
+        return twindb_agent.handlers.get_job()
 
     def backup(self):
-        log = self.logger
-        if twindb_agent.handlers.schedule_backup(self.config, debug=self.debug):
+        log = logging.getLogger("twindb_console")
+        if twindb_agent.handlers.schedule_backup():
             job_order = self.get_job_order()
-            log.info("Received job order %s" % json.dumps(job_order, indent=4, sort_keys=True))
-            job = twindb_agent.job.Job(job_order, self.config, debug=self.debug)
-            job.process()
+            if job_order:
+                log.info("Received job order %s" % json.dumps(job_order, indent=4, sort_keys=True))
+                job = twindb_agent.job.Job(job_order)
+                log.info("Starting backup job")
+                if job.process():
+                    log.info("Backup is successfully completed")
+                else:
+                    log.error("Failed to take backup")
+            else:
+                log.error("Didn't receive job order although backup job was successfully scheduled")
