@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Module to work with TwinDB agent config
 """

@@ -1,14 +1,15 @@
-# -*- coding: utf-8 -*-
 import json
 import logging
 import multiprocessing
 import time
 import sys
+import os
 
-import twindb_agent.job
+import twindb_agent.config
 import twindb_agent.gpg
 import twindb_agent.handlers
-import twindb_agent.config
+import twindb_agent.job
+import twindb_agent.utils
 
 
 class Agent(object):
@@ -35,7 +36,7 @@ class Agent(object):
 
                 # Report replication status
                 log.debug("Reporting replication status")
-                proc = multiprocessing.Process(target=twindb_agent.handlers.report_sss,
+                proc = multiprocessing.Process(target=twindb_agent.handlers.report_show_slave_status,
                                                name="report_sss")
                 proc.start()
 
@@ -45,17 +46,24 @@ class Agent(object):
                                                name="report_agent_privileges")
                 proc.start()
 
-                # Calling this has the side affect of “joining” any processes which have already finished.
+                # Calling this has the side affect of "joining" any processes which have already finished.
                 multiprocessing.active_children()
             else:
                 log.warn("This agent(%s) isn't registered" % self.config.server_id)
             time.sleep(self.config.check_period)
 
-    def stop(self):
-        log = self.logger
+    @staticmethod
+    def stop(signum=None, frame=None):
+        log = logging.getLogger("twindb_remote")
+        log.info("TwinDB agent process received signal %d" % signum)
+        # log.info("Shutting down TwinDB agent")
+
         for proc in multiprocessing.active_children():
             log.info("Terminating process %s" % proc.name)
             proc.terminate()
+            proc.join()
+        # log.info("TwinDB agent successfully shut down")
+
         sys.exit(0)
 
     @staticmethod

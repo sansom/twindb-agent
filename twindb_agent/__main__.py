@@ -1,8 +1,7 @@
-# -*- coding: utf-8 -*-
 import logging
-
 import optparse
 import sys
+import signal
 import twindb_agent.__about__
 import twindb_agent.agent
 import twindb_agent.config
@@ -58,6 +57,8 @@ def main():
     console = logging.getLogger("twindb_console")
 
     agent = twindb_agent.agent.Agent()
+    for sig in [signal.SIGHUP, signal.SIGINT, signal.SIGQUIT, signal.SIGABRT, signal.SIGTERM]:
+        signal.signal(sig, agent.stop)
 
     if options.start:
         agent.start()

@@ -1,9 +1,8 @@
-# -*- coding: utf-8 -*-
-
 """
 Classes to work with jobs
 """
 import logging
+import os
 import time
 import twindb_agent.config
 import twindb_agent.twindb_mysql
@@ -44,7 +43,8 @@ class Job(object):
                 raise JobError("Job start time isn't set")
 
             if not twindb_agent.handlers.log_job_notify(params={"event": "start_job",
-                                                                "job_id": job_id}):
+                                                                "job_id": job_id,
+                                                                "pid": os.getpid()}):
                 raise JobError("Failed to notify dispatcher about job start")
 
             log.info("Processing job_id = %d" % job_id, log_params)
@@ -56,14 +56,10 @@ class Job(object):
             log.info("Wating %d seconds before job is started" % delay, log_params)
             time.sleep(delay)
 
-            if self.job_order["type"] == "backup":
-                ret = self.take_backup()
-            elif self.job_order["type"] == "restore":
-                ret = self.restore_backup()
-            elif self.job_order["type"] == "send_key":
-                ret = self.send_key()
-            else:
-                raise JobError("Unsupported job type " + self.job_order["type"])
+            # Execute a job
+            module_name = "twindb_agent.job_type.%s" % self.job_order["type"]
+            module = __import__(module_name, globals(), locals(), [self.job_order["type"]])
+            ret = module.execute(self.job_order)
 
             log.info("job_id = %d finished with code %d" % (job_id, ret), log_params)
 

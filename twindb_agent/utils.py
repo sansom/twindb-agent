@@ -1,14 +1,11 @@
-# -*- coding: utf-8 -*-
-
 """
 Auxilary functions
 """
+import errno
 import logging
 import os
-import traceback
-
-import errno
 import time
+import traceback
 import sys
 
 log = logging.getLogger("twindb_local")

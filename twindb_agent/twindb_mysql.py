@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Classes and funtions to work with MySQL
 """

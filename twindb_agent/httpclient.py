@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 """
 Class that communicates to TwinDB dispatcher
 """
@@ -7,6 +5,7 @@ import httplib
 import json
 import logging
 import socket
+import traceback
 import urllib
 import twindb_agent.config
 import twindb_agent.gpg
@@ -85,7 +84,9 @@ class TwinDBHTTPClient(object):
                     "resp": msg
                 })
             else:
-                log.error("HTTP error %d %s" % (http_response.status, http_response.reason))
+                pass
+                # log.info("HTTP error %d %s" % (http_response.status, http_response.reason))
+                # log.debug(traceback.format_exc())
         except socket.error as err:
             log.error("Exception while making request " + url)
             log.error(err)
