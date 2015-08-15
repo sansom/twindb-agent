@@ -9,7 +9,6 @@ import subprocess
 import pwd
 import twindb_agent.config
 import twindb_agent.handlers
-from twindb_agent.utils import exit_on_error
 
 try:
     import mysql.connector
@@ -235,16 +234,17 @@ class MySQL(object):
         """
         Creates local MySQL user for twindb agent
         """
-        config = twindb_agent.handlers.get_config()
         log = self.logger
+        server_config = twindb_agent.handlers.get_config()
         try:
             conn = self.get_mysql_connection()
             q = "GRANT RELOAD, LOCK TABLES, REPLICATION CLIENT, SUPER, CREATE TABLESPACE"
             q += " ON *.* TO %s@'localhost' IDENTIFIED BY %s"
             cursor = conn.cursor()
-            cursor.execute(q, (config["mysql_user"], config["mysql_password"]))
+            cursor.execute(q, (server_config["mysql_user"], server_config["mysql_password"]))
         except mysql.connector.Error as err:
             log.error("MySQL replied: %s" % err)
-            exit_on_error("Failed to create MySQL user %s@localhost for TwinDB agent" % config["mysql_user"])
-        log.info("Created MySQL user %s@localhost for TwinDB agent" % config["mysql_user"])
+            log.error("Failed to create MySQL user %s@localhost for TwinDB agent" % server_config["mysql_user"])
+            return False
+        log.info("Created MySQL user %s@localhost for TwinDB agent" % server_config["mysql_user"])
         return True

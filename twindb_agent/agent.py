@@ -3,7 +3,7 @@ import logging
 import multiprocessing
 import time
 import sys
-import os
+import fcntl
 
 import twindb_agent.config
 import twindb_agent.gpg
@@ -33,6 +33,10 @@ class Agent(object):
                     proc = multiprocessing.Process(target=job.process,
                                                    name="%s-%s" % (job_order["type"], job_order["job_id"]))
                     proc.start()
+                    # Dispatcher can't handle parallel jobs. Will wait till job finishes.
+                    # After the bug is fixed .join() should be removed
+                    # https://bugs.launchpad.net/twindb/+bug/1484342
+                    proc.join()
 
                 # Report replication status
                 log.debug("Reporting replication status")
@@ -55,8 +59,12 @@ class Agent(object):
     @staticmethod
     def stop(signum=None, frame=None):
         log = logging.getLogger("twindb_remote")
-        log.info("TwinDB agent process received signal %d" % signum)
+        if signum:
+            log.info("TwinDB agent process received signal %d" % signum)
         # log.info("Shutting down TwinDB agent")
+        # shut up pycharm warning
+        if frame:
+            pass
 
         for proc in multiprocessing.active_children():
             log.info("Terminating process %s" % proc.name)
@@ -68,8 +76,17 @@ class Agent(object):
 
     @staticmethod
     def register(reg_code):
+        log = logging.getLogger("twindb_console")
         if twindb_agent.handlers.register(reg_code):
-            twindb_agent.handlers.commit_registration()
+            # TODO Implement commit_registration handler in dispatcher
+            # if not twindb_agent.handlers.commit_registration():
+            #     log.error("Failed to confirm agent registartion")
+            #     sys.exit(2)
+            log.info("Agent is successfully registered")
+            pass
+        else:
+            log.error("Agent registration failed")
+            sys.exit(2)
 
     @staticmethod
     def unregister(delete_backups=False):
@@ -89,11 +106,27 @@ class Agent(object):
             job_order = self.get_job_order()
             if job_order:
                 log.info("Received job order %s" % json.dumps(job_order, indent=4, sort_keys=True))
+                if job_order["type"] != "backup":
+                    log.warning("We scheduled backup job, but the dispatcher sent '%s' job order." % job_order["type"])
+                    log.warning("TwinDB agent will eventually execute the backup job if it's running")
+                    sys.exit(2)
+                try:
+                    lockfile = open("/tmp/twindb.xtrabackup.lock", "w+")
+                    fcntl.flock(lockfile.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)
+                except IOError:
+                    log.warning("The local agent is already executing a backup job")
+                    log.warning("The backup will be taken by the running agent when the current backup job is done")
+                    sys.exit(2)
+
                 job = twindb_agent.job.Job(job_order)
                 log.info("Starting backup job")
+                fcntl.flock(lockfile.fileno(), fcntl.LOCK_UN)
                 if job.process():
                     log.info("Backup is successfully completed")
                 else:
                     log.error("Failed to take backup")
             else:
                 log.error("Didn't receive job order although backup job was successfully scheduled")
+        else:
+            log.error("Failed to schedule a backup job")
+            sys.exit(2)

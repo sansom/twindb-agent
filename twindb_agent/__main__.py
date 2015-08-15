@@ -25,7 +25,7 @@ def get_opt_parser():
                       action="store_true", dest="delete_backups", default=False)
     parser.add_option("--is-registered", help="Check if the agent is registered in TwinDB", action="store_true")
     parser.add_option("--backup", help="Take backup copy now", action="store_true")
-    parser.add_option("--debug", help="Print debug information",
+    parser.add_option("-g", "--debug", help="Print debug information",
                       action="store_true", dest="debug", default=False)
 
     return parser
@@ -63,7 +63,7 @@ def main():
     if options.start:
         agent.start()
     elif options.stop:
-        agent.stop()
+        console.warning("--stop is not implemented")
     elif options.reg_code:
         agent.register(options.reg_code)
     elif options.unregister:

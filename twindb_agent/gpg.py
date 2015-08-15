@@ -192,7 +192,7 @@ Expire-Date: 0
         """
         log = self.logger
         if not msg_64:
-            log.error("Will not decrypt empty message")
+            log.warning("Will not decrypt empty message")
             return None
         cout = "No output"
         cerr = "No output"

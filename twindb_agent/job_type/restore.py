@@ -4,6 +4,7 @@ import os
 import shutil
 import subprocess
 import tempfile
+import twindb_agent.api
 import twindb_agent.config
 import twindb_agent.gpg
 import twindb_agent.handlers
@@ -197,6 +198,9 @@ class Restore(object):
         log.info("Starting: %r" % xb_cmd, log_params)
         p3 = subprocess.Popen(xb_cmd, stdin=p2.stdout, stdout=subprocess.PIPE,
                               stderr=err_desc["xb"], cwd=dst_dir)
+        p1.stdout.close()  # Allow ssh to receive a SIGPIPE if gpg exits.
+        p2.stdout.close()  # Allow gpg to receive a SIGPIPE if xtrabackup exits.
+
         p1.wait()
         p2.wait()
         p3.wait()
@@ -236,33 +240,13 @@ class Restore(object):
         log_params = self.log_params
         backup_copy_id = self.job_order["params"]["backup_copy_id"]
         log.debug("Getting backups chain for backup_copy_id %d" % backup_copy_id, log_params)
-        response_body = "Empty response"
-        backups_chain = None
-        try:
-            data = {
-                "type": "get_backups_chain",
-                "params": {
-                    "backup_copy_id": backup_copy_id
-                }
+
+        data = {
+            "type": "get_backups_chain",
+            "params": {
+                "backup_copy_id": backup_copy_id
             }
-            http = twindb_agent.httpclient.TwinDBHTTPClient()
-            response_body = http.get_response(data)
-            if not response_body:
-                log.debug("Empty response from dispatcher", log_params)
-                return None
-            d = json.JSONDecoder()
-            response_body_decoded = d.decode(response_body)
-            if response_body_decoded:
-                gpg = twindb_agent.gpg.TwinDBGPG()
-                msg_decrypted = gpg.decrypt(response_body_decoded["response"])
-                msg_pt = d.decode(msg_decrypted)
-                backups_chain = msg_pt["data"]
-                log.info("Got backups chain:\n%s"
-                         % json.dumps(backups_chain, indent=4, sort_keys=True), log_params)
-                if msg_pt["error"]:
-                    log.error(msg_pt["error"], log_params)
-        except KeyError as err:
-            log.error("Failed to decode %s" % response_body, log_params)
-            log.error(err, log_params)
-            return None
+        }
+        api = twindb_agent.api.TwinDBAPI()
+        backups_chain = api.call(data)
         return backups_chain

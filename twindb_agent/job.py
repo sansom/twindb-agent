@@ -1,6 +1,7 @@
 """
 Classes to work with jobs
 """
+import json
 import logging
 import os
 import time
@@ -11,6 +12,11 @@ import twindb_agent.handlers
 
 class Job(object):
     def __init__(self, job_order):
+        # TODO "params" in a job order is a string on some reason.
+        # Until it's fixed decode params
+        # https://bugs.launchpad.net/twindb/+bug/1485032
+        job_params = json.JSONDecoder().decode(job_order["params"])
+        job_order["params"] = job_params
         self.job_order = job_order
         self.agent_config = twindb_agent.config.AgentConfig.get_config()
         self.logger = logging.getLogger("twindb_remote")
@@ -29,6 +35,7 @@ class Job(object):
 
         job_id = int(self.job_order["job_id"])
         log_params = {"job_id": job_id}
+        log.info("Processing job_id = %d" % job_id, log_params)
 
         try:
             mysql = twindb_agent.twindb_mysql.MySQL()
@@ -42,12 +49,6 @@ class Job(object):
             if not self.job_order["start_scheduled"]:
                 raise JobError("Job start time isn't set")
 
-            if not twindb_agent.handlers.log_job_notify(params={"event": "start_job",
-                                                                "job_id": job_id,
-                                                                "pid": os.getpid()}):
-                raise JobError("Failed to notify dispatcher about job start")
-
-            log.info("Processing job_id = %d" % job_id, log_params)
             start_scheduled = int(self.job_order["start_scheduled"])
             now = int(time.time())
             delay = start_scheduled - now
@@ -55,6 +56,11 @@ class Job(object):
                 delay = 0
             log.info("Wating %d seconds before job is started" % delay, log_params)
             time.sleep(delay)
+
+            if not twindb_agent.handlers.log_job_notify(params={"event": "start_job",
+                                                                "job_id": job_id,
+                                                                "pid": os.getpid()}):
+                raise JobError("Failed to notify dispatcher about job start")
 
             # Execute a job
             module_name = "twindb_agent.job_type.%s" % self.job_order["type"]
@@ -67,7 +73,7 @@ class Job(object):
                                                          "job_id": job_id,
                                                          "ret_code": ret})
         except JobError as err:
-            log.error("Job error: %s", err, log_params)
+            log.error("Job error: %s" % err, log_params)
 
             twindb_agent.handlers.log_job_notify(params={"event": "stop_job",
                                                          "job_id": job_id,
@@ -77,17 +83,6 @@ class Job(object):
             log.debug(err, log_params)
             return False
         return True
-
-    def send_key(self):
-        return twindb_agent.handlers.send_key(job_order=self.job_order)
-
-    def take_backup(self):
-        return twindb_agent.handlers.take_backup(self.job_order)
-
-    def restore_backup(self):
-        if self:
-            pass
-        return 0
 
 
 class JobError(Exception):

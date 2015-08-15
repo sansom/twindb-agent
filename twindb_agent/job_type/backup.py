@@ -1,3 +1,7 @@
+import tempfile
+import datetime
+import fcntl
+import twindb_agent.api
 import twindb_agent.config
 import twindb_agent.gpg
 import twindb_agent.httpclient
@@ -33,7 +37,6 @@ def take_backup_xtrabackup(job_order):
     server_config = get_config()
     mysql = twindb_agent.twindb_mysql.MySQL(mysql_user=server_config["mysql_user"],
                                             mysql_password=server_config["mysql_password"])
-    http = twindb_agent.httpclient.TwinDBHTTPClient()
 
     def start_ssh_cmd(file_name, stdin, stderr):
         """
@@ -111,22 +114,13 @@ def take_backup_xtrabackup(job_order):
             }
         }
         log.debug("Saving a record %s" % data, log_params)
-
-        response = http.get_response(data)
-        if response:
-            jd = json.JSONDecoder()
-            r = jd.decode(response)
-            log.debug(r)
-            if r["success"]:
-                log.info("Saved backup copy details", log_params)
-                return True
-            else:
-                gpg = twindb_agent.gpg.TwinDBGPG()
-                log.error("Failed to save backup copy details: " + jd.decode(gpg.decrypt(r["response"]))["error"],
-                          log_params)
-                return False
+        api = twindb_agent.api.TwinDBAPI()
+        api.call(data)
+        if api.success:
+            log.info("Saved backup copy details", log_params)
+            return True
         else:
-            log.error("Empty response from server", log_params)
+            log.error("Failed to save backup copy details")
             return False
 
     def gen_extra_config():
@@ -184,7 +178,7 @@ def take_backup_xtrabackup(job_order):
         return backup_size
 
     suffix = "xbstream"
-    backup_name = "server_id_%s_%s.%s.gpg" % (agent_config.server_id, datetime.now().isoformat(), suffix)
+    backup_name = "server_id_%s_%s.%s.gpg" % (agent_config.server_id, datetime.datetime.now().isoformat(), suffix)
     ret_code = 0
     if "params" not in job_order:
         log.error("There are no params in the job order", log_params)
@@ -227,7 +221,8 @@ def take_backup_xtrabackup(job_order):
             log.error("Failed to open file %s. %s" % (desc_file, err), log_params)
             return -1
     # Grab an exclusive lock to make sure only one XtrBackup process is runnning
-    fcntl.flock(err_descriptors["xtrabackup"], fcntl.LOCK_EX)
+    lockfile = open("/tmp/twindb.xtrabackup.lock", "w+")
+    fcntl.flock(lockfile.fileno(), fcntl.LOCK_EX)
     try:
         log.debug("Starting XtraBackup process: %r" % xtrabackup_cmd, log_params)
         xbk_proc = subprocess.Popen(xtrabackup_cmd, stdout=subprocess.PIPE, stderr=err_descriptors["xtrabackup"])
@@ -237,8 +232,8 @@ def take_backup_xtrabackup(job_order):
     gpg_proc = start_gpg_cmd(xbk_proc.stdout, err_descriptors["gpg"])
     ssh_proc = start_ssh_cmd(backup_name, gpg_proc.stdout, err_descriptors["ssh"])
 
-    xbk_proc.stdout.close()  # Allow p1 to receive a SIGPIPE if p2 exits.
-    gpg_proc.stdout.close()  # Allow p2 to receive a SIGPIPE if p3 exits.
+    xbk_proc.stdout.close()  # Allow xbk_proc to receive a SIGPIPE if gpg exits.
+    gpg_proc.stdout.close()  # Allow gpg_proc to receive a SIGPIPE if ssh exits.
 
     xbk_proc.wait()
     gpg_proc.wait()
@@ -250,10 +245,14 @@ def take_backup_xtrabackup(job_order):
 
     err_str = dict()
     for desc in ["gpg", "ssh", "xtrabackup"]:
-        err_descriptors[desc].seek(0)
-        err_str[desc] = err_descriptors[desc].read()
-        if not err_str[desc]:
-            err_str[desc] = "no output"
+        try:
+            err_descriptors[desc].seek(0)
+            err_str[desc] = err_descriptors[desc].read()
+            if not err_str[desc]:
+                err_str[desc] = "no output"
+        except IOError as err:
+            err_str[desc] = "Failed to read output"
+            log.error(err)
 
     log.info("XtraBackup stderr: " + err_str["xtrabackup"])
     log.info("GPG stderr: " + err_str["gpg"])

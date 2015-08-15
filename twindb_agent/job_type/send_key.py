@@ -1,6 +1,7 @@
 import logging
 import subprocess
 
+import twindb_agent.api
 import twindb_agent.config
 import twindb_agent.httpclient
 
@@ -12,7 +13,6 @@ def execute(job_order):
     """
     agent_config = twindb_agent.config.AgentConfig.get_config()
     log = logging.getLogger("twindb_remote")
-    http = twindb_agent.httpclient.TwinDBHTTPClient()
 
     # Get owner of the GPG key
     cmd_1 = ["gpg", "--list-packets"]
@@ -78,8 +78,12 @@ def execute(job_order):
                 "job_id": job_order["job_id"]
             }
         }
-        http.get_response(data)
-        return 0
+        api = twindb_agent.api.TwinDBAPI()
+        api.call(data)
+        if api.success:
+            return 0
+        else:
+            return -1
     else:
         log.error("The job order requested send_key, but no public key was provided")
         return -1

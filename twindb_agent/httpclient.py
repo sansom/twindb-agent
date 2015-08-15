@@ -5,17 +5,16 @@ import httplib
 import json
 import logging
 import socket
-import traceback
 import urllib
 import twindb_agent.config
 import twindb_agent.gpg
 
 
 class TwinDBHTTPClient(object):
-    def __init__(self, logger=None):
+    def __init__(self, logger_name=None):
         self.config = twindb_agent.config.AgentConfig.get_config()
-        if logger:
-            self.logger = logger
+        if logger_name:
+            self.logger = logging.getLogger(logger_name)
         else:
             self.logger = logging.getLogger("twindb_local")
 
