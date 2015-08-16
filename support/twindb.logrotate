@@ -1,0 +1,6 @@
+/var/log/twindb/twindb-agent.log {
+    rotate 7
+    size 1M
+    missingok
+    notifempty
+}

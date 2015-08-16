@@ -1,0 +1,137 @@
+Name:		twindb-agent
+Version:	@@VERSION@@
+Release:	@@RELEASE@@
+Summary:	TwinDB agent for online MySQL backups
+
+Group:		Applications/Databases
+License:	GPL version 2
+URL:		https://twindb.com
+Source0:	%{name}-%{version}.tar.gz
+BuildRoot:	%(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
+BuildArch:	noarch
+
+BuildRequires:	coreutils
+Obsoletes:  twindb
+
+%if 0%{?rhel}
+%if %{?rhel} == 5
+BuildRequires:	redhat-lsb
+Requires: 	python26
+%endif
+%else
+BuildRequires:	redhat-lsb-core
+Requires: 	python >= 2.6.0
+Requires:	ntpdate
+%endif
+
+Requires:	gpg
+Requires:	tar
+Requires:	lsof
+Requires:	chkconfig
+Requires:	procps
+Requires:	mysql
+Requires:	mysql-server
+Requires:	/usr/bin/innobackupex
+Requires:	ntp
+Requires:	initscripts
+Requires:	mysql-connector-python >= 2.0.0
+
+%description
+TwinDB agent for online MySQL backups
+See more details on https://twindb.com
+
+%prep
+%setup -q
+
+%build
+echo "Building twindb"
+make
+
+
+%install
+%__rm -rf %{buildroot}
+%__make install DESTDIR=%{buildroot}
+%__install -d %{buildroot}/%{_sysconfdir}/init.d/
+%__install -d %{buildroot}/%{_sysconfdir}/logrotate.d/
+%__install -d %{buildroot}/%{_sysconfdir}/yum.repos.d/
+%__install -m 755 support/twindb %{buildroot}/%{_sysconfdir}/init.d/
+
+%post
+if [ -x /sbin/chkconfig ] ; then
+        /sbin/chkconfig --add twindb
+        /sbin/chkconfig twindb on
+        /sbin/chkconfig ntpd on
+%if 0%{?rhel} == 6 || 0%{?fedora} >= 19
+        /sbin/chkconfig ntpdate on
+%endif
+
+fi
+
+echo "Stopping ntpd service"
+service ntpd stop
+
+%if 0%{?rhel} == 6 || 0%{?fedora} >= 19
+    echo "Restarting ntpdate"
+    service ntpdate restart
+%endif
+
+
+echo "Starting ntpd service"
+service ntpd start
+
+if [ "$1" = "1" ]
+then
+    echo "Starting twindb client"
+    service twindb start
+else
+    echo "Restarting twindb client"
+    service twindb restart
+fi
+
+if ! test -f %{_sysconfdir}/twindb.cfg
+then
+	echo "TwinDB client is installed."
+	echo "Now you need to register this server. To do so run:"
+	echo ""
+	echo "twindb --register <registration code>"
+	echo ""
+	echo "To obtain the registration code follow link https://console.twindb.com/?get_code"
+	echo ""
+fi
+
+%clean
+%__rm -rf %{buildroot}
+
+%preun
+if [ "$1" -eq 0 ] ; then
+%{_sysconfdir}/init.d/twindb stop
+/sbin/chkconfig --del twindb
+fi
+
+%files
+%defattr(-,root,root,-)
+%doc
+%{_bindir}/twindb
+%attr(755, root, root) %{_sysconfdir}/init.d/twindb
+%{_mandir}/man8/twindb.8.gz
+%{_sysconfdir}/logrotate.d/twindb
+
+%if 0%{?rhel}
+%if %{?rhel} != 5
+%ghost %config(noreplace,missingok) %attr(644, root, root) %{_sysconfdir}/twindb.cfg
+%endif
+%endif
+
+
+%changelog
+* Mon Dec 1 2014 Aleksandr Kuzminsky <packager@twindb.com>  0.1.0
+  - Start over
+
+Fixes https://bugs.launchpad.net/twindb-client/+bug/1273461
+* Mon Jan 27 2014 Aleksandr Kuzminsky <packager@twindb.com>  0.0-80
+
+Fixes https://bugs.launchpad.net/twindb-client/+bug/1273461
+
+* Mon Apr 22 2013 Aleksandr Kuzminsky <aleksandr.kuzminsky@gmail.com> - 0.0
+- Initial package.
+

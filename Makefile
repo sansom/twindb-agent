@@ -1,4 +1,10 @@
 .PHONY: clean-pyc clean-build docs clean
+agent_version = $(shell python -c 'from twindb_agent import __about__; print(__about__.__version__)')
+agent_release = 1
+build_dir = build
+pwd := $(shell pwd)
+top_dir = ${pwd}/${build_dir}/rpmbuild
+rpmmacros = /usr/lib/rpm/macros:/usr/lib/rpm/redhat/macros:/etc/rpm/macros:support/rpm/rpmmacros
 
 help:
 	@echo "clean - remove all build, test, coverage and Python artifacts"
@@ -66,5 +72,39 @@ dist: clean
 	python setup.py bdist_wheel
 	ls -l dist
 
+PYTHON_VERSION = $$(python --version 2>&1 | awk '{ print $$2 }' | awk -F. '{ print $$1"."$$2 }' )
+PYTHON_SITE_PACKAGES_DIR = $$(python -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")
+
+build: clean
+	python setup.py build
+
 install: clean
-	python setup.py install
+	@ if test -z "${DESTDIR}" ; \
+	then python setup.py build ; \
+	else python setup.py install --root "${DESTDIR}" ; \
+	fi
+
+# Packaging
+# RPM stuff
+build-rpm: spec dist
+	mkdir -p "${top_dir}/SOURCES"
+	mkdir -p "${top_dir}/BUILD"
+	mkdir -p "${top_dir}/SRPMS"
+	mkdir -p "${top_dir}/RPMS/noarch"
+	cp dist/twindb-agent-${agent_version}.tar.gz ${top_dir}/SOURCES/
+	rpmbuild --macros=${rpmmacros} --define '_topdir ${top_dir}' -ba support/rpm/twindb-agent.spec
+
+sign-rpm: rpmmacros
+	rpm --addsign ${top_dir}/RPMS/noarch/twindb-${client_version}-${client_release}.noarch.rpm
+
+upload-rpm:
+	ssh -o StrictHostKeyChecking=no repomaster@repo.twindb.com "mkdir -p /var/lib/twindb/repo-staging/rpm/${rh_release}/x86_64/"
+	scp -o StrictHostKeyChecking=no ${top_dir}/RPMS/noarch/twindb-${client_version}-${client_release}.noarch.rpm \
+        repomaster@repo.twindb.com:/var/lib/twindb/repo-staging/rpm/${rh_release}/x86_64/
+
+rpmmacros:
+	if ! test -f ~/.rpmmacros ; then cp support/rpm/rpmmacros ~/.rpmmacros; fi
+
+spec:
+	sed -e "s/@@VERSION@@/${agent_version}/" -e "s/@@RELEASE@@/${agent_release}/" \
+		support/rpm/twindb-agent.spec.template > support/rpm/twindb-agent.spec

@@ -1,0 +1,17 @@
+#!/bin/bash -e
+
+chmod 755 /usr/bin/twindb
+
+if [ "`twindb --is-registered`" != "YES" ]
+then
+    echo "================================================================================"
+    echo "TwinDB client is installed."
+    echo "Now you need to register this server. To do so run:"
+    echo ""
+    echo "twindb --register <registration code>"
+    echo ""
+    echo "To obtain the registration code follow link https://console.twindb.com/?get_code"
+    echo "================================================================================"
+fi
+#DEBHELPER#
+

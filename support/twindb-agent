@@ -1,0 +1,96 @@
+#!/bin/sh
+
+### BEGIN INIT INFO
+# Provides: twindb
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start: 2 3 4 5
+# Default-Stop: 0 1 6
+# Description: TwinDB client init script
+### END INIT INFO
+
+action=$1
+pid_file=/var/run/twindb.pid
+log_file=/var/log/twindb/twindb-agent.log
+TWINDB_AGENT_BINARY=/usr/bin/twindb-agent
+
+if test -z "${action}"
+then
+	echo "Usage:"
+	echo "$0 start|stop|restart|status"
+	exit 1
+fi
+
+if [ `whoami` != "root" ]
+then
+    echo "$0 must be run as root"
+fi
+
+function start_agent(){
+    echo -n "Starting TwinDB agent ... "
+    ${TWINDB_AGENT_BINARY} --start
+    echo "OK"
+}
+
+function stop_agent() {
+    if test -f ${pid_file}
+	then
+		echo -n "Stopping TwinDB agent ... "
+        pid=`cat "${pid_file}"`
+        wait_timeout=300
+		${TWINDB_AGENT_BINARY} --stop
+        # Wait till agent exits
+        while kill -0 ${pid} 2>/dev/null
+        do
+            if [ ${wait_timeout} -lt 1 ]; then break; fi
+            sleep 1
+            wait_timeout=$(( $wait_timeout - 1 ))
+        done
+		echo "OK"
+    else
+        echo "Pid file(${pid_file}) doesn't exist."
+	fi
+
+    # Kill all abandoned and hung agents
+    pkill -0 -f ${TWINDB_AGENT_BINARY}
+    ret_code=$?
+
+    if [ ${ret_code} -eq 0 ]; then
+        pkill -9 -f ${TWINDB_AGENT_BINARY} || true
+    fi
+
+}
+
+
+case "${action}" in
+	'start')
+        echo -n "Starting TwinDB agent ... "
+        start_agent &
+        echo "OK"
+        exit 0
+	;;
+	'stop')
+        stop_agent
+	;;
+	'restart')
+	    $0 stop
+        $0 start
+	;;
+    'force-reload')
+        $0 stop
+        $0 start
+    ;;
+	'status')
+	    if test -f ${pid_file} && ! test -z "$(ps -p `cat ${pid_file}` -o pid=)"
+	    then
+		    echo "TwinDB client is running"
+	    else
+	        if pgrep -f ${TWINDB_AGENT_BINARY}
+	        then
+	            echo "Warning: It looks like ${TWINDB_AGENT_BINARY} is running, but ${pid_file} doesn't exist"
+            else
+		        echo "TwinDB client is not running"
+            fi
+	    fi
+	;;
+esac
