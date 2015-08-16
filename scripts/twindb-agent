@@ -2,6 +2,36 @@
 
 set -eu
 
+function is_instance_running() {
+    # Check if another instance is running
+    local result="NO"
+    if test -f "${PID_FILE}"
+    then
+        echo "Pid file ${PID_FILE} exists"
+        PID=`cat "${PID_FILE}"`
+        if kill -0 ${PID}
+        then
+            # PID exists
+            # check if it's an agent's PID
+            if test -z "`grep twindb_agent/__main__.py /proc/${PID}/cmdline`"
+            then
+                # It's not agent's PID
+                echo "Process ${PID} is not TwinDB agent"
+                rm -f "${PID_FILE}"
+                result="NO"
+            else
+                # It's agent's PID. It's running
+                echo "Another TwinDB agent is running"
+                result="YES"
+            fi
+        else
+            echo "Removing abandoned pid file ${PID_FILE}"
+            rm -f "${PID_FILE}"
+            result="NO"
+        fi
+    fi
+    echo ${result}
+}
 # Find path to twindb agent
 TWINDB_ARGENT=""
 for dir in `python -c "import sys; print ' '.join(x for x in sys.path if x)"`
@@ -62,48 +92,27 @@ do
     fi
 done
 
-# Check if another instance is running
-if test -f "${PID_FILE}"
-then
-    echo "Pid file ${PID_FILE} exists"
-    PID=`cat "${PID_FILE}"`
-    if kill -0 ${PID}
-    then
-        # PID exists
-        # check if it's an agent's PID
-        if test -z "`grep twindb_agent/__main__.py /proc/${PID}/cmdline`"
-        then
-            # It's not agent's PID
-            echo "Process ${PID} is not TwinDB agent"
-            rm -f "${PID_FILE}"
-        else
-            # It's agent's PID. It's running
-            echo "Another TwinDB agent is running"
-            exit
-        fi
-    else
-        echo "Removing abandoned pid file ${PID_FILE}"
-        rm -f "${PID_FILE}"
-    fi
-fi
 
 if test -z "`echo $* | grep -w -- --start`"
 then
     python ${TWINDB_ARGENT} $*
 else
-    set +e
-    while true
-    do
-        python ${TWINDB_ARGENT} $* &
-        PID=$!
-        echo ${PID} > "${PID_FILE}"
-        wait ${PID}
-        ret=$?
-        rm -f "${PID_FILE}"
-        if [ ${ret} -eq 0 ]
-        then
-            exit
-        fi
-        sleep 1
-    done
+    if [ "`is_instance_running`" = "NO" ]
+    then
+        set +e
+        while true
+        do
+            python ${TWINDB_ARGENT} $* &
+            PID=$!
+            echo ${PID} > "${PID_FILE}"
+            wait ${PID}
+            ret=$?
+            rm -f "${PID_FILE}"
+            if [ ${ret} -eq 0 ]
+            then
+                exit
+            fi
+            sleep 1
+        done
+    fi
 fi

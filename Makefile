@@ -35,7 +35,7 @@ clean-test:
 	rm -fr htmlcov/
 
 lint:
-	flake8 twindb-agent tests
+	flake8 twindb_agent tests
 
 test:
 	python setup.py test
