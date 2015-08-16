@@ -1,11 +1,8 @@
 # Config file for automatic testing at travis-ci.org
-# test
 
 language: python
 
 python:
-  - "3.4"
-  - "3.3"
   - "2.7"
   - "2.6"
   - "pypy"
