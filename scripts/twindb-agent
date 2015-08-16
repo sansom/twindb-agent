@@ -87,18 +87,23 @@ then
     fi
 fi
 
-set +e
-while true
-do
-    python ${TWINDB_ARGENT} $* &
-    PID=$!
-    echo ${PID} > "${PID_FILE}"
-    wait ${PID}
-    ret=$?
-    rm -f "${PID_FILE}"
-    if [ ${ret} -eq 0 ]
-    then
-        exit
-    fi
-    sleep 1
-done
+if test -z "`echo $* | grep -w -- --start`"
+then
+    python ${TWINDB_ARGENT} $*
+else
+    set +e
+    while true
+    do
+        python ${TWINDB_ARGENT} $* &
+        PID=$!
+        echo ${PID} > "${PID_FILE}"
+        wait ${PID}
+        ret=$?
+        rm -f "${PID_FILE}"
+        if [ ${ret} -eq 0 ]
+        then
+            exit
+        fi
+        sleep 1
+    done
+fi

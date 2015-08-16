@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 
 
 try:
@@ -52,10 +51,12 @@ setup(
     author_email="dev@twindb.com",
     url="https://github.com/twindb/twindb-agent",
     packages=[
-        "twindb_agent"
+        "twindb_agent",
+        "twindb_agent.job_type"
     ],
     package_dir={'twindb_agent':
                  'twindb_agent'},
+    scripts=["scripts/twindb-agent"],
     include_package_data=True,
     install_requires=requirements,
     license="Apache License Version 2.0",
