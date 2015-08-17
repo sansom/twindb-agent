@@ -69,7 +69,7 @@ release: clean
 
 dist: clean
 	python setup.py sdist
-	python setup.py bdist_wheel
+	# python setup.py bdist_wheel
 	ls -l dist
 
 PYTHON_VERSION = $$(python --version 2>&1 | awk '{ print $$2 }' | awk -F. '{ print $$1"."$$2 }' )
@@ -80,8 +80,10 @@ build: clean
 
 install: clean
 	@ if test -z "${DESTDIR}" ; \
-	then python setup.py build ; \
+	then python setup.py install ; \
 	else python setup.py install --root "${DESTDIR}" ; \
+		mkdir -p "${DESTDIR}/etc/logrotate.d/" ; \
+		install -m 644 support/twindb-agent.logrotate "${DESTDIR}/etc/logrotate.d/twindb-agent" ; \
 	fi
 
 # Packaging

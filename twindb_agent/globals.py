@@ -8,7 +8,7 @@ ssh_private_key_file = "/root/.ssh/twindb.key"
 ssh_public_key_file = "/root/.ssh/twindb.key.pub"
 ssh_port = 4194
 
-pid_file = "/var/run/twindb.pid"
+pid_file = "/var/run/twindb-agent.pid"
 check_period = 1
 time_zone = "UTC"
 mysql_user = None

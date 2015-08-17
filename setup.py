@@ -1,5 +1,10 @@
 #!/usr/bin/env python
 
+# To workaround hard link error
+# http://stackoverflow.com/questions/7719380/python-setup-py-sdist-error-operation-not-permitted
+# http://bugs.python.org/issue8876#msg208792
+import os
+del os.link
 
 try:
     from setuptools import setup

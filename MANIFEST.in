@@ -3,6 +3,9 @@ include CONTRIBUTING.rst
 include HISTORY.rst
 include LICENSE
 include README.rst
+include Makefile
+include support/twindb-agent
+include support/twindb-agent.logrotate
 
 recursive-include tests *
 recursive-exclude * __pycache__

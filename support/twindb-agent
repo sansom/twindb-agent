@@ -10,7 +10,7 @@
 ### END INIT INFO
 
 action=$1
-pid_file=/var/run/twindb.pid
+pid_file=`python -c "import twindb_agent.globals; print(twindb_agent.globals.pid_file)"`
 log_file=/var/log/twindb/twindb-agent.log
 TWINDB_AGENT_BINARY=/usr/bin/twindb-agent
 
@@ -27,9 +27,7 @@ then
 fi
 
 function start_agent(){
-    echo -n "Starting TwinDB agent ... "
     ${TWINDB_AGENT_BINARY} --start
-    echo "OK"
 }
 
 function stop_agent() {

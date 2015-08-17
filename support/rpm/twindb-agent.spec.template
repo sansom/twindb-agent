@@ -13,6 +13,10 @@ BuildArch:	noarch
 BuildRequires:	coreutils
 Obsoletes:  twindb
 
+# Disable byte compilinig. Yikes!
+# hard links fail on vagrant machines. Comment it out if that's fixed
+%global __os_install_post %(echo '%{__os_install_post}' | sed -e 's!/usr/lib[^[:space:]]*/brp-python-bytecompile[[:space:]].*$!!g')
+
 %if 0%{?rhel}
 %if %{?rhel} == 5
 BuildRequires:	redhat-lsb
@@ -45,8 +49,6 @@ See more details on https://twindb.com
 
 %build
 echo "Building twindb"
-make
-
 
 %install
 %__rm -rf %{buildroot}
@@ -54,12 +56,12 @@ make
 %__install -d %{buildroot}/%{_sysconfdir}/init.d/
 %__install -d %{buildroot}/%{_sysconfdir}/logrotate.d/
 %__install -d %{buildroot}/%{_sysconfdir}/yum.repos.d/
-%__install -m 755 support/twindb %{buildroot}/%{_sysconfdir}/init.d/
+%__install -m 755 support/twindb-agent %{buildroot}/%{_sysconfdir}/init.d/
 
 %post
 if [ -x /sbin/chkconfig ] ; then
-        /sbin/chkconfig --add twindb
-        /sbin/chkconfig twindb on
+        /sbin/chkconfig --add twindb-agent
+        /sbin/chkconfig twindb-agent on
         /sbin/chkconfig ntpd on
 %if 0%{?rhel} == 6 || 0%{?fedora} >= 19
         /sbin/chkconfig ntpdate on
@@ -81,19 +83,17 @@ service ntpd start
 
 if [ "$1" = "1" ]
 then
-    echo "Starting twindb client"
-    service twindb start
+    service twindb-agent start
 else
-    echo "Restarting twindb client"
-    service twindb restart
+    service twindb-agent restart
 fi
 
 if ! test -f %{_sysconfdir}/twindb.cfg
 then
-	echo "TwinDB client is installed."
+	echo "TwinDB agent is installed."
 	echo "Now you need to register this server. To do so run:"
 	echo ""
-	echo "twindb --register <registration code>"
+	echo "twindb-agent --register <registration code>"
 	echo ""
 	echo "To obtain the registration code follow link https://console.twindb.com/?get_code"
 	echo ""
@@ -104,17 +104,18 @@ fi
 
 %preun
 if [ "$1" -eq 0 ] ; then
-%{_sysconfdir}/init.d/twindb stop
-/sbin/chkconfig --del twindb
+%{_sysconfdir}/init.d/twindb-agent stop
+/sbin/chkconfig --del twindb-agent
 fi
 
 %files
 %defattr(-,root,root,-)
 %doc
-%{_bindir}/twindb
-%attr(755, root, root) %{_sysconfdir}/init.d/twindb
-%{_mandir}/man8/twindb.8.gz
-%{_sysconfdir}/logrotate.d/twindb
+%{_bindir}/twindb-agent
+%attr(755, root, root) %{_sysconfdir}/init.d/twindb-agent
+%{_sysconfdir}/logrotate.d/twindb-agent
+%{python_sitelib}/twindb_agent
+%{python_sitelib}/twindb_agent*.egg-info
 
 %if 0%{?rhel}
 %if %{?rhel} != 5

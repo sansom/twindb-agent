@@ -14,7 +14,8 @@ percona-xtrabackup
 haveged
 lsof
 redhat-lsb-core
-vim"
+vim
+rpm-build"
 
 yum -y install ${packages}
 
