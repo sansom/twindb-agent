@@ -42,7 +42,7 @@ output/*/index.html
 # Sphinx
 docs/_build
 
-vagrant/vagrant_centos6/.vagrant
+.vagrant
 
 .idea
 # .spec file is generated from twiwndb-agent.spec.template
