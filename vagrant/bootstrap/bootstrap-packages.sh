@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -ex
 export PATH=$PATH:/sbin
 
 function install_packages_centos() {
@@ -70,6 +70,15 @@ function install_packages_debian() {
         "wheezy")
             apt_config_deb="mysql-apt-config_0.3.5-1debian7_all.deb"
             ;;
+        "jessie")
+            apt_config_deb="mysql-apt-config_0.3.6-1debian8_all.deb"
+            ;;
+        "precise")
+            apt_config_deb="mysql-apt-config_0.3.5-1ubuntu12.04_all.deb"
+            ;;
+        "trusty")
+            apt_config_deb="mysql-apt-config_0.3.5-1ubuntu14.04_all.deb"
+            ;;
         *)
             echo "Unknown OS type ${dist_id}"
             lsb_release -a
@@ -79,8 +88,13 @@ function install_packages_debian() {
     dpkg -i /tmp/${apt_config_deb}
 
     # TwinDB repo
-    wget -qO /etc/apt/sources.list.d/twindb.list http://repo.twindb.com/twindb.`lsb_release -cs`.list
-    apt-key adv --keyserver pgp.mit.edu --recv-keys 2A9C65370E199794
+    # we don't have TwinDB repo for jessie yet
+    # TODO https://bugs.launchpad.net/twindb-agent/+bug/1486261
+    if [ "${codename}" != "jessie" ]
+    then
+        wget -qO /etc/apt/sources.list.d/twindb.list http://repo.twindb.com/twindb.`lsb_release -cs`.list
+        apt-key adv --keyserver pgp.mit.edu --recv-keys 2A9C65370E199794
+    fi
 
     apt-get update
 
