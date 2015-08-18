@@ -26,7 +26,7 @@ then
     chown -R mysql:mysql /var/run/mysqld
 fi
 
-/etc/init.d/mysqld start
+service mysqld start
 
 if [ "`wait_for_mysql`" = "SUCCESS" ]
 then
