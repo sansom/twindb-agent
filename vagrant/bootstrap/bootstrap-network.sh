@@ -5,7 +5,9 @@ set -e
 function install_lsb_release() {
     if ! test -z "`which yum`"
     then
-        yum -y install redhat-lsb-core
+        # redhat-lsb provides lsb_release on CentOS 5
+        # redhat-lsb-core provides lsb_release on CentOS 6 and 7
+        yum -y install redhat-lsb-core redhat-lsb
     fi
     if ! test -z "`which apt-get`"
     then
