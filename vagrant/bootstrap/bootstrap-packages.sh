@@ -38,8 +38,16 @@ yum -y install ${packages}
 
 chkconfig mysqld on
 
-if [ "${release}" != "el5" ]
-then
-    chkconfig haveged on
-    /etc/init.d/haveged start
-fi
+case ${release} in
+    "el5")
+        ;;
+    "el6")
+        chkconfig haveged on
+        /etc/init.d/haveged start
+        ;;
+    "el7")
+        chkconfig haveged on
+        service haveged start
+        ;;
+esac
+
