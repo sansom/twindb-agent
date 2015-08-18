@@ -11,7 +11,8 @@ case "${dist_id}" in
         mysql_config_file="/etc/my.cnf"
         ;;
     "Ubuntu"|"Debian")
-        mysql_config_file="/etc/mysql/my.cnf"
+        mkdir -p /etc/mysql/conf.d/
+        mysql_config_file="/etc/mysql/conf.d/replication.cnf"
         ;;
     *)
         echo "Unknown OS type ${dist_id}"
@@ -21,6 +22,7 @@ esac
 
 cat <<EOF > "${mysql_config_file}"
 [mysqld]
-server_id=1${idx}
-log_bin=mysqld-bin
+server_id       = 1${idx}
+log_bin         = mysqld-bin
+bind-address    = 0.0.0.0
 EOF

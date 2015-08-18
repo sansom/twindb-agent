@@ -5,11 +5,18 @@ export PATH=$PATH:/usr/sbin
 
 function wait_for_mysql() {
     # wait till mysql starts
+    # $1 is an optional MySQL password
     timeout=300
     mysql_started="NO"
+    MYSQL=mysql
+    MYSQL_ARGS=""
+    if ! test -z "$1"
+    then
+        MYSQL_ARGS="${MYSQL_ARGS} -p$1"
+    fi
     while [ ${timeout} -gt 0 ]
     do
-        if ! [ "`mysql -e 'SELECT 1'`" = "1" ]
+        if [ "`${MYSQL} ${MYSQL_ARGS} -NBe 'SELECT 1'`" = "1" ]
         then
             echo "SUCCESS"
             break
@@ -18,6 +25,7 @@ function wait_for_mysql() {
         let timeout=$timeout-1
     done
 }
+
 release=`uname -r | awk -F. '{ print $4 }'`
 
 if [ "$release" == "el5" ]
@@ -26,9 +34,23 @@ then
     chown -R mysql:mysql /var/run/mysqld
 fi
 
-service mysqld start
+MYSQL_PASSWORD=""
+dist_id=`lsb_release -is`
+case "${dist_id}" in
+    "CentOS")
+        service mysqld start
+        ;;
+    "Ubuntu" | "Debian")
+        MYSQL_PASSWORD=""
+        service mysql restart
+        ;;
+    *)
+        echo "Unknown OS type ${dist_id}"
+        lsb_release -a
+        exit -1
+esac
 
-if [ "`wait_for_mysql`" = "SUCCESS" ]
+if [ "`wait_for_mysql ${MYSQL_PASSWORD}`" = "SUCCESS" ]
 then
     exit 0
 else

@@ -55,6 +55,44 @@ function install_packages_centos() {
 
 function install_packages_debian() {
     echo "Installing Debian packages"
+    export DEBIAN_FRONTEND=noninteractive
+    debconf-set-selections <<< 'mysql-apt-config mysql-apt-config/select-server string mysql-5.6'
+    debconf-set-selections <<< 'mysql-apt-config mysql-apt-config/select-workbench string workbench-6.3'
+    debconf-set-selections <<< 'mysql-apt-config mysql-apt-config/select-utilities string mysql-utilities-1.5'
+    debconf-set-selections <<< 'mysql-apt-config mysql-apt-config/select-connector-python string connector-python-2.0'
+    debconf-set-selections <<< 'mysql-server mysql-server/root_password password MySuperPassword'
+    debconf-set-selections <<< 'mysql-server mysql-server/root_password_again password MySuperPassword'
+
+    codename=`lsb_release -cs`
+
+    # MySQL repo
+    case "${codename}" in
+        "wheezy")
+            apt_config_deb="mysql-apt-config_0.3.5-1debian7_all.deb"
+            ;;
+        *)
+            echo "Unknown OS type ${dist_id}"
+            lsb_release -a
+            exit -1
+    esac
+    wget -q -O /tmp/${apt_config_deb} https://dev.mysql.com/get/${apt_config_deb}
+    dpkg -i /tmp/${apt_config_deb}
+
+    # TwinDB repo
+    wget -qO /etc/apt/sources.list.d/twindb.list http://repo.twindb.com/twindb.`lsb_release -cs`.list
+    apt-key adv --keyserver pgp.mit.edu --recv-keys 2A9C65370E199794
+
+    apt-get update
+
+    packages="
+    mysql-server
+    mysql-connector-python
+    percona-xtrabackup
+    haveged
+    lsof
+    vim
+    chkconfig"
+    apt-get -y install ${packages}
 }
 
 
@@ -63,10 +101,7 @@ case "${dist_id}" in
     "CentOS")
         install_packages_centos
         ;;
-    "Ubuntu")
-        install_packages_debian
-        ;;
-    "Debian")
+    "Ubuntu" | "Debian")
         install_packages_debian
         ;;
     *)

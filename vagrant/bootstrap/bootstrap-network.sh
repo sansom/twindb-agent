@@ -28,9 +28,8 @@ case "${dist_id}" in
     "CentOS")
         sed -i "s/HOSTNAME=localhost.localdomain/HOSTNAME=${hostname}/" /etc/sysconfig/network
         ;;
-    "Ubuntu")
-        ;;
-    "Debian")
+    "Ubuntu" | "Debian")
+        echo "${hostname}" > /etc/hostname
         ;;
     *)
         echo "Unknown OS type ${dist_id}"
