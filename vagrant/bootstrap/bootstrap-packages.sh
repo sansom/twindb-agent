@@ -57,7 +57,7 @@ function install_packages_debian() {
     echo "Installing Debian packages"
     export DEBIAN_FRONTEND=noninteractive
     debconf-set-selections <<< 'mysql-apt-config mysql-apt-config/select-server string mysql-5.6'
-    debconf-set-selections <<< 'mysql-apt-config mysql-apt-config/select-workbench string workbench-6.3'
+    # debconf-set-selections <<< 'mysql-apt-config mysql-apt-config/select-workbench string workbench-6.3'
     debconf-set-selections <<< 'mysql-apt-config mysql-apt-config/select-utilities string mysql-utilities-1.5'
     debconf-set-selections <<< 'mysql-apt-config mysql-apt-config/select-connector-python string connector-python-2.0'
     debconf-set-selections <<< 'mysql-server mysql-server/root_password password MySuperPassword'
