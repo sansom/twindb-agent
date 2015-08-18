@@ -63,21 +63,32 @@ function install_packages_debian() {
     debconf-set-selections <<< 'mysql-server mysql-server/root_password password MySuperPassword'
     debconf-set-selections <<< 'mysql-server mysql-server/root_password_again password MySuperPassword'
 
+    packages="
+    mysql-server
+    mysql-connector-python
+    percona-xtrabackup
+    haveged
+    lsof
+    vim"
     codename=`lsb_release -cs`
 
     # MySQL repo
     case "${codename}" in
         "wheezy")
             apt_config_deb="mysql-apt-config_0.3.5-1debian7_all.deb"
+            packages="${packages} chkconfig"
             ;;
         "jessie")
             apt_config_deb="mysql-apt-config_0.3.6-1debian8_all.deb"
+            packages="${packages} chkconfig"
             ;;
         "precise")
             apt_config_deb="mysql-apt-config_0.3.5-1ubuntu12.04_all.deb"
+            packages="${packages} chkconfig"
             ;;
         "trusty")
             apt_config_deb="mysql-apt-config_0.3.5-1ubuntu14.04_all.deb"
+            packages="${packages} sysv-rc-conf"
             ;;
         *)
             echo "Unknown OS type ${dist_id}"
@@ -98,15 +109,24 @@ function install_packages_debian() {
 
     apt-get update
 
-    packages="
-    mysql-server
-    mysql-connector-python
-    percona-xtrabackup
-    haveged
-    lsof
-    vim
-    chkconfig"
     apt-get -y install ${packages}
+    case "${codename}" in
+        "wheezy" | "jessie" | "precise")
+            chkconfig mysql on
+            chkconfig haveged on
+            ;;
+        "trusty")
+            sysv-rc-conf mysql on
+            sysv-rc-conf haveged on
+            ;;
+        *)
+            echo "Unknown OS type ${dist_id}"
+            lsb_release -a
+            exit -1
+    esac
+
+    service haveged start
+
 }
 
 
