@@ -86,6 +86,7 @@ install: clean
 	else python setup.py install --prefix /usr --root "${DESTDIR}" ; \
 		mkdir -p "${DESTDIR}/etc/logrotate.d/" ; \
 		install -m 644 support/twindb-agent.logrotate "${DESTDIR}/etc/logrotate.d/twindb-agent" ; \
+		install -m 644 support/twindb-agent.man "${DESTDIR}/etc/logrotate.d/twindb-agent" ; \
 	fi
 
 # Packaging

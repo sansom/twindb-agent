@@ -1,0 +1,25 @@
+.TH "twindb-agent" 8 "19 Aug 2015" "" "TwinDB LLC"
+.SH NAME
+twindb-agent - a TwinDB agent
+.SH SYNOPSIS
+.B twindb-agent [--start]|[--stop]|[--register <code>]
+.SH DESCRIPTION
+TwinDB is service that manages backups of MySQL server.
+
+The agent connects to the TwinDB dispatcher. It reads configuration, schedule, jobs and executes them
+on a local server.
+
+Before the first use the agent has to be registered. To register the server run
+
+twindb-agent --register <registration code>
+
+To obtain the registration code follow link https://console.twindb.com/?get_code
+
+.SH COMMAND LINE ARGUMENTS
+Run
+.B twindb-agent --help
+for the full list of supported command line arguments
+.SH FILES
+
+/etc/twindb.cfg
+
