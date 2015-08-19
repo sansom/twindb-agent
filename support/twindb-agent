@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/usr/bin/env bash
 
 ### BEGIN INIT INFO
 # Provides: twindb
@@ -26,11 +26,11 @@ then
     echo "$0 must be run as root"
 fi
 
-function start_agent(){
+function start_agent () {
     ${TWINDB_AGENT_BINARY} --start
 }
 
-function stop_agent() {
+function stop_agent () {
     if test -f ${pid_file}
 	then
 		echo -n "Stopping TwinDB agent ... "

@@ -1,18 +1,19 @@
-Source: twindb
+Source: twindb-agent
 Homepage: https://twindb.com
 Maintainer: TwinDB Packager (TwinDB packager key) <packager@twindb.com>
 Section: database
 Priority: optional
 Standards-Version: 3.9.3
 Build-Depends: debhelper (>= 7)
-Vcs-Browser: https://code.launchpad.net/twindb-agent
-Vcs-Bzr: bzr+ssh://bazaar.launchpad.net/%2Bbranch/twindb-agent/
+Vcs-Browser: https://github.com/twindb/twindb-agent
+Vcs-Git: git@github.com:twindb/twindb-agent.git
 
-Package: twindb
+Package: twindb-agent
 Architecture: all
 Section: database
 Priority: optional
 Depends: ${misc:Depends}, lsof, percona-xtrabackup, gnupg, python (>= 2.6.0), mysql-connector-python (>= 2.0.0)
+Replaces: twindb
 Description: backup and recovery tool for MySQL
  TwinDB is online backup service for MySQL.
  It includes scheduler, retention policy manager, storage.

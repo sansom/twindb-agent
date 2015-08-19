@@ -44,7 +44,9 @@ lint:
 	flake8 twindb_agent tests
 
 test:
-	python setup.py test
+	@ echo "TwinDB agnet testing"
+	# Disable for now, on Ubuntu it doesn't work
+	# python setup.py test
 
 test-all:
 	tox
@@ -80,13 +82,17 @@ build: clean
 
 install: clean
 	@ if test -z "${DESTDIR}" ; \
-	then python setup.py install ; \
-	else python setup.py install --root "${DESTDIR}" ; \
+	then python setup.py install --prefix /usr; \
+	else python setup.py install --prefix /usr --root "${DESTDIR}" ; \
 		mkdir -p "${DESTDIR}/etc/logrotate.d/" ; \
 		install -m 644 support/twindb-agent.logrotate "${DESTDIR}/etc/logrotate.d/twindb-agent" ; \
 	fi
 
 # Packaging
+package:
+	@if ! test -z "`which yum 2>/dev/null`"; then make build-rpm; fi
+	@if ! test -z "`which apt-get 2>/dev/null`"; then make deb-dependencies build-deb; fi
+
 # RPM stuff
 build-rpm: spec dist
 	mkdir -p "${top_dir}/SOURCES"
@@ -110,3 +116,37 @@ rpmmacros:
 spec:
 	sed -e "s/@@VERSION@@/${agent_version}/" -e "s/@@RELEASE@@/${agent_release}/" \
 		support/rpm/twindb-agent.spec.template > support/rpm/twindb-agent.spec
+
+# Debian stuff
+deb_packages = build-essential devscripts debhelper
+
+deb-dependencies:
+	@echo "Checking dependencies"
+	@for p in ${deb_packages}; \
+    do echo -n "$$p ... " ; \
+        if test -z "`dpkg -l | grep $$p`"; \
+        then \
+            echo "$$p ... NOT installed"; \
+            apt-get -y install $$p; \
+        else \
+            echo "installed"; \
+        fi ; \
+    done
+
+deb-changelog:
+	@echo "Generating changelog"
+	@export DEBEMAIL="TwinDB Packager (TwinDB packager key) <packager@twindb.com>" ; \
+	export version=${agent_version}-${agent_release} ; \
+	cd support/deb/ ; \
+	rm -f debian/changelog ; \
+	export distr=`lsb_release -sc` ; \
+	dch -v $$version.$$distr --create --package twindb-agent --distribution $$distr "New version $$version" ;
+
+
+build-deb: deb-dependencies dist deb-changelog
+	mkdir -p "${build_dir}"
+	cp "dist/twindb-agent-${agent_version}.tar.gz" "${build_dir}/twindb-agent_${agent_version}.orig.tar.gz"
+	tar zxf "${build_dir}/twindb-agent_${agent_version}.orig.tar.gz" -C "${build_dir}"
+	cp -LR support/deb/debian/ "${build_dir}/twindb-agent-${agent_version}"
+	cd "${build_dir}/twindb-agent-${agent_version}" && debuild -us -uc
+

@@ -69,7 +69,10 @@ function install_packages_debian() {
     percona-xtrabackup
     haveged
     lsof
-    vim"
+    vim
+    build-essential
+    devscripts
+    debhelper"
     codename=`lsb_release -cs`
 
     # MySQL repo
