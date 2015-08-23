@@ -110,9 +110,21 @@ function install_packages_debian() {
         apt-key adv --keyserver pgp.mit.edu --recv-keys 2A9C65370E199794
     fi
 
-    apt-get update
+    # Try to update APT repos up to 5 times
+    for i in `seq 5`
+    do
+        apt-get update && break
+        echo "Failed to update apt repos. Retrying"
+    done
 
-    apt-get -y install ${packages}
+    # Try to update APT repos up to 5 times
+    for i in `seq 5`
+    do
+        apt-get -y install ${packages} && break
+        echo "Failed to install packages. Retrying"
+    done
+
+
     case "${codename}" in
         "wheezy" | "jessie" | "precise")
             chkconfig mysql on

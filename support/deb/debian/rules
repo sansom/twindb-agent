@@ -1,12 +1,14 @@
 #!/usr/bin/make -f
 
 export DH_VERBOSE=1
+#PYTHON2=$(shell pyversions -r)
 
 %:
 	dh $@
 
-override_dh_usrlocal:
-
-override_dh_auto_install:
-        python setup.py install --root=debian/charm --install-layout=deb --install-lib=/usr/share/charm --install-scripts=/usr/share/charm
-  override_dh_auto_build:
+override_dh_install:
+	set -e; \
+	for python in $(PYTHON2); do \
+		$$python setup.py install --install-layout=deb --root=$(CURDIR)/debian/twindb-agent ; \
+	done
+	dh_install

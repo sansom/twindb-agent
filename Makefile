@@ -26,6 +26,7 @@ clean-build:
 	rm -fr build/
 	rm -fr dist/
 	rm -fr .eggs/
+	rm -f support/deb/debian/changelog.dch support/deb/debian/changelog
 	find . -name '*.egg-info' -exec rm -fr {} +
 	find . -name '*.egg' -exec rm -f {} +
 
@@ -141,7 +142,7 @@ deb-changelog:
 	cd support/deb/ ; \
 	rm -f debian/changelog ; \
 	export distr=`lsb_release -sc` ; \
-	dch -v $$version.$$distr --create --package twindb-agent --distribution $$distr "New version $$version" ;
+	dch -v $$version.$$distr --create --package twindb-agent --distribution $$distr --force-distribution "New version $$version" ;
 
 
 build-deb: deb-dependencies dist deb-changelog
