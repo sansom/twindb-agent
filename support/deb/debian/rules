@@ -1,16 +1,12 @@
 #!/usr/bin/make -f
 
 export DH_VERBOSE=1
-PYTHON2=$(shell pyversions -r)
 
 %:
 	dh $@ --with python2
 
 override_dh_install:
-	set -e; \
-	for python in $(PYTHON2); do \
-		$$python setup.py install --install-layout=deb --root=$(CURDIR)/debian/twindb-agent ; \
-	done
+	python setup.py install --install-layout=deb --root=$(CURDIR)/debian/twindb-agent
 	dh_install
 
 override_dh_auto_install:
