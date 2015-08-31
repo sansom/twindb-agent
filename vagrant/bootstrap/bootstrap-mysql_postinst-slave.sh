@@ -1,5 +1,7 @@
 #!/usr/bin/env bash
 
+set -exu
+
 mysql -u root -e "RESET SLAVE"
 mysql -u root -e "CHANGE MASTER TO
     MASTER_HOST='192.168.50.101',

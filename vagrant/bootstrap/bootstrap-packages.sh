@@ -1,31 +1,58 @@
 #!/usr/bin/env bash
 
-set -ex
+set -exu
 export PATH=$PATH:/sbin
 
-function install_packages_centos() {
-    release=`uname -r | awk -F. '{ print $4 }'`
-    yum -y install https://repo.twindb.com/twindb-release-latest.noarch.rpm
+function get_epel_rpm() {
+    release=$1
 
     case ${release} in
         "el5")
-            wget -O /tmp/mysql-community-release-el5-5.noarch.rpm --no-check-certificate \
-                https://dev.mysql.com/get/mysql-community-release-el5-5.noarch.rpm
-            rpm -Uhv /tmp/mysql-community-release-el5-5.noarch.rpm
-            rpm -Uvh http://mirror.redsox.cc/pub/epel/5/x86_64/epel-release-5-4.noarch.rpm
+            echo "https://dl.fedoraproject.org/pub/epel/epel-release-latest-5.noarch.rpm"
             ;;
         "el6")
-            yum -y install https://dev.mysql.com/get/mysql-community-release-el6-5.noarch.rpm
-            rpm -Uvh http://mirror.redsox.cc/pub/epel/6/x86_64/epel-release-6-8.noarch.rpm
+            echo "https://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm"
             ;;
         "el7")
-            yum -y install https://dev.mysql.com/get/mysql-community-release-el7-5.noarch.rpm
-            rpm -Uvh http://mirror.redsox.cc/pub/epel/7/x86_64/e/epel-release-7-5.noarch.rpm
+            echo "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
             ;;
     esac
+}
+
+function get_oracle_rpm() {
+    release=$1
+
+    case ${release} in
+        "el5")
+            echo "http://dev.mysql.com/get/mysql-community-release-el5-5.noarch.rpm"
+            ;;
+        "el6")
+            echo "http://dev.mysql.com/get/mysql-community-release-el6-5.noarch.rpm"
+            ;;
+        "el7")
+            echo "http://dev.mysql.com/get/mysql-community-release-el7-5.noarch.rpm"
+            ;;
+    esac
+}
+
+
+function install_packages_centos() {
+
+    release=`uname -r | awk -F. '{ print $4 }'`
+
+    # TwinDB repo
+    curl -s https://packagecloud.io/install/repositories/twindb/main/script.rpm.sh | bash
+
+    # EPEL repo
+    wget -O /tmp/epel.rpm `get_epel_rpm ${release}`
+    rpm -Uhv /tmp/epel.rpm
+
+    # Oracle repo
+    wget -O /tmp/oracle.rpm `get_oracle_rpm ${release}`
+    rpm -Uhv /tmp/oracle.rpm
 
     packages="
-    mysql-community-server
+    mysql-server
     mysql-connector-python
     percona-xtrabackup
     haveged
@@ -35,18 +62,22 @@ function install_packages_centos() {
     rpm-build
     chkconfig"
 
-    yum -y install ${packages}
-
-    chkconfig mysqld on
+    for i in `seq 3`
+    do
+        yum -y --disablerepo=mysql-connectors-community install ${packages} && break
+    done
 
     case ${release} in
         "el5")
+            chkconfig mysqld on
             ;;
         "el6")
+            chkconfig mysqld on
             chkconfig haveged on
-            /etc/init.d/haveged start
+            service haveged start
             ;;
         "el7")
+            chkconfig mysqld on
             chkconfig haveged on
             service haveged start
             ;;
@@ -56,10 +87,10 @@ function install_packages_centos() {
 function install_packages_debian() {
     echo "Installing Debian packages"
     export DEBIAN_FRONTEND=noninteractive
-    debconf-set-selections <<< 'mysql-apt-config mysql-apt-config/select-server string mysql-5.6'
+    # debconf-set-selections <<< 'mysql-apt-config mysql-apt-config/select-server string mysql-5.6'
     # debconf-set-selections <<< 'mysql-apt-config mysql-apt-config/select-workbench string workbench-6.3'
-    debconf-set-selections <<< 'mysql-apt-config mysql-apt-config/select-utilities string mysql-utilities-1.5'
-    debconf-set-selections <<< 'mysql-apt-config mysql-apt-config/select-connector-python string connector-python-2.0'
+    # debconf-set-selections <<< 'mysql-apt-config mysql-apt-config/select-utilities string mysql-utilities-1.5'
+    # debconf-set-selections <<< 'mysql-apt-config mysql-apt-config/select-connector-python string connector-python-2.0'
     debconf-set-selections <<< 'mysql-server mysql-server/root_password password MySuperPassword'
     debconf-set-selections <<< 'mysql-server mysql-server/root_password_again password MySuperPassword'
 
@@ -78,19 +109,15 @@ function install_packages_debian() {
     # MySQL repo
     case "${codename}" in
         "wheezy")
-            apt_config_deb="mysql-apt-config_0.3.5-1debian7_all.deb"
             packages="${packages} chkconfig"
             ;;
         "jessie")
-            apt_config_deb="mysql-apt-config_0.3.6-1debian8_all.deb"
             packages="${packages} chkconfig"
             ;;
         "precise")
-            apt_config_deb="mysql-apt-config_0.3.5-1ubuntu12.04_all.deb"
             packages="${packages} chkconfig"
             ;;
         "trusty")
-            apt_config_deb="mysql-apt-config_0.3.5-1ubuntu14.04_all.deb"
             packages="${packages} sysv-rc-conf"
             ;;
         *)
@@ -98,8 +125,6 @@ function install_packages_debian() {
             lsb_release -a
             exit -1
     esac
-    wget -q -O /tmp/${apt_config_deb} https://dev.mysql.com/get/${apt_config_deb}
-    dpkg -i /tmp/${apt_config_deb}
 
     # TwinDB repo
     # we don't have TwinDB repo for jessie yet

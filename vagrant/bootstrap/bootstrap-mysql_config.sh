@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -exu
 
 hostname="`hostname`"
 idx=`hostname | sed 's/[a-z]//g'`

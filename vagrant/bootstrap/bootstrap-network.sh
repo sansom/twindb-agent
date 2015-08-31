@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -exu
 
 function install_lsb_release() {
     if ! test -z "`which yum`"
