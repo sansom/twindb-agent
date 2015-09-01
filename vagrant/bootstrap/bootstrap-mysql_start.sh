@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -exu
 export PATH=$PATH:/usr/sbin
 
 function wait_for_mysql() {
@@ -10,10 +10,12 @@ function wait_for_mysql() {
     mysql_started="NO"
     MYSQL=mysql
     MYSQL_ARGS=""
+    set +u
     if ! test -z "$1"
     then
         MYSQL_ARGS="${MYSQL_ARGS} -p$1"
     fi
+    set -u
     while [ ${timeout} -gt 0 ]
     do
         if [ "`${MYSQL} ${MYSQL_ARGS} -NBe 'SELECT 1'`" = "1" ]
@@ -41,7 +43,7 @@ case "${dist_id}" in
         service mysqld start
         ;;
     "Ubuntu" | "Debian")
-        MYSQL_PASSWORD=""
+        MYSQL_PASSWORD="MySuperPassword"
         service mysql restart
         ;;
     *)

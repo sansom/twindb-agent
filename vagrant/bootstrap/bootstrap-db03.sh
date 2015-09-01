@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-set -e
+set -exu
 
 hostname=db03
 hostname ${hostname}
