@@ -49,3 +49,6 @@ docs/_build
 .idea
 # .spec file is generated from twiwndb-agent.spec.template
 twindb-agent.spec
+
+# Key files
+*.pem
