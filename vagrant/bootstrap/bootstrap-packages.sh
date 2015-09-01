@@ -94,6 +94,10 @@ function install_packages_debian() {
     debconf-set-selections <<< 'mysql-server mysql-server/root_password password MySuperPassword'
     debconf-set-selections <<< 'mysql-server mysql-server/root_password_again password MySuperPassword'
 
+    apt-get update
+    # We need it for packagecloud repo
+    apt-get -y install apt-transport-https curl
+
     packages="
     mysql-server
     mysql-connector-python
@@ -106,7 +110,6 @@ function install_packages_debian() {
     debhelper"
     codename=`lsb_release -cs`
 
-    # MySQL repo
     case "${codename}" in
         "wheezy")
             packages="${packages} chkconfig"
@@ -127,13 +130,8 @@ function install_packages_debian() {
     esac
 
     # TwinDB repo
-    # we don't have TwinDB repo for jessie yet
-    # TODO https://bugs.launchpad.net/twindb-agent/+bug/1486261
-    if [ "${codename}" != "jessie" ]
-    then
-        wget -qO /etc/apt/sources.list.d/twindb.list http://repo.twindb.com/twindb.`lsb_release -cs`.list
-        apt-key adv --keyserver pgp.mit.edu --recv-keys 2A9C65370E199794
-    fi
+    curl -s https://packagecloud.io/install/repositories/twindb/main/script.deb.sh | sudo bash
+
 
     # Try to update APT repos up to 5 times
     for i in `seq 5`
@@ -152,6 +150,7 @@ function install_packages_debian() {
 
     case "${codename}" in
         "wheezy" | "jessie" | "precise")
+            test -f /sbin/insserv || ln -s /usr/lib/insserv/insserv /sbin/insserv
             chkconfig mysql on
             chkconfig haveged on
             ;;

@@ -1,12 +1,27 @@
 #!/usr/bin/env bash
 
 set -exu
+MYSQL_ARGS="-u root"
+MYSQL_PASSWORD=""
+dist_id=`lsb_release -is`
+case "${dist_id}" in
+    "CentOS")
+        ;;
+    "Ubuntu" | "Debian")
+        MYSQL_PASSWORD="MySuperPassword"
+        MYSQL_ARGS="-u root -p${MYSQL_PASSWORD}"
+        ;;
+    *)
+        echo "Unknown OS type ${dist_id}"
+        lsb_release -a
+        exit -1
+esac
 
-mysql -u root -e "RESET SLAVE"
-mysql -u root -e "CHANGE MASTER TO
+mysql ${MYSQL_ARGS} -e "RESET SLAVE"
+mysql ${MYSQL_ARGS} -e "CHANGE MASTER TO
     MASTER_HOST='192.168.50.101',
     MASTER_USER='replication',
     MASTER_PASSWORD='bigs3cret',
     MASTER_LOG_FILE='mysqld-bin.000001',
     MASTER_LOG_POS=120"
-mysql -u root -e "START SLAVE"
+mysql ${MYSQL_ARGS} -e "START SLAVE"
