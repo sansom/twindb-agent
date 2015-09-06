@@ -8,7 +8,9 @@ TwinDB Agent
 .. image:: https://img.shields.io/pypi/v/twindb-agent.svg
         :target: https://pypi.python.org/pypi/twindb-agent
 
-[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/twindb/twindb-agent?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge)
+.. image:: https://badges.gitter.im/Join%20Chat.svg
+   :alt: Join the chat at https://gitter.im/twindb/twindb-agent
+   :target: https://gitter.im/twindb/twindb-agent?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge
 
 
 TwinDB Agent
