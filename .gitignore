@@ -50,5 +50,5 @@ docs/_build
 # .spec file is generated from twiwndb-agent.spec.template
 twindb-agent.spec
 
-# SSH keys
+# Key files
 *.pem
