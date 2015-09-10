@@ -7,6 +7,7 @@ include Makefile
 include support/twindb-agent
 include support/twindb-agent.logrotate
 include support/twindb-agent.man
+include scripts/twindb-agent.sh.in
 
 recursive-include tests *
 recursive-exclude * __pycache__

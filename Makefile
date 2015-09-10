@@ -1,10 +1,21 @@
-.PHONY: clean-pyc clean-build docs clean
+.PHONY: clean-pyc clean-build docs clean scripts
 agent_version = $(shell python -c 'from twindb_agent import __about__; print(__about__.__version__)')
 agent_release = 1
 build_dir = build
 pwd := $(shell pwd)
 top_dir = ${pwd}/${build_dir}/rpmbuild
-rpmmacros = /usr/lib/rpm/macros:/usr/lib/rpm/redhat/macros:/etc/rpm/macros:support/rpm/rpmmacros
+
+ifeq ($(shell lsb_release -is),AmazonAMI)
+PYTHON := $(shell rpm --eval '%{__python}')
+PYTHON_LIB := $(shell rpm --eval '%{python_sitelib}')
+else ifeq ($(shell lsb_release -is),CentOS)
+PYTHON := $(shell rpm --eval '%{__python}')
+PYTHON_LIB := $(shell rpm --eval '%{python_sitelib}')
+else
+PYTHON := python
+PYTHON_LIB := $(shell %(PYTHON) -c "from distutils.sysconfig import get_python_lib; import sys; sys.stdout.write(get_python_lib())")
+endif
+
 
 help:
 	@echo "clean - remove all build, test, coverage and Python artifacts"
@@ -75,16 +86,22 @@ dist: clean
 	# python setup.py bdist_wheel
 	ls -l dist
 
-PYTHON_VERSION = $$(python --version 2>&1 | awk '{ print $$2 }' | awk -F. '{ print $$1"."$$2 }' )
-PYTHON_SITE_PACKAGES_DIR = $$(python -c "from distutils.sysconfig import get_python_lib; print(get_python_lib())")
+scripts:
+	export PYTHONS=`echo $(PYTHON) | sed 's/\//\\\\\//g'` ; \
+	cat scripts/twindb-agent.sh.in | sed "s/@PYTHON@/$$PYTHONS/" > scripts/twindb-agent
 
-build: clean
+build: scripts clean
 	python setup.py build
 
-install: clean
-	@ if test -z "${DESTDIR}" ; \
-	then python setup.py install --prefix /usr; \
-	else python setup.py install --prefix /usr --root "${DESTDIR}" ; \
+install: scripts clean
+	if test -z "${DESTDIR}" ; \
+	then $(PYTHON) setup.py install \
+		--prefix /usr \
+		--install-lib $(PYTHON_LIB); \
+	else $(PYTHON) setup.py install \
+		--prefix /usr \
+		--install-lib $(PYTHON_LIB) \
+		--root "${DESTDIR}" ; \
 		mkdir -p "${DESTDIR}/etc/logrotate.d/" ; \
 		install -m 644 support/twindb-agent.logrotate "${DESTDIR}/etc/logrotate.d/twindb-agent" ; \
 		install -m 644 support/twindb-agent.man "${DESTDIR}/etc/logrotate.d/twindb-agent" ; \
@@ -102,7 +119,7 @@ build-rpm: spec dist
 	mkdir -p "${top_dir}/SRPMS"
 	mkdir -p "${top_dir}/RPMS/noarch"
 	cp dist/twindb-agent-${agent_version}.tar.gz ${top_dir}/SOURCES/
-	rpmbuild --macros=${rpmmacros} --define '_topdir ${top_dir}' -ba support/rpm/twindb-agent.spec
+	rpmbuild --define '_topdir ${top_dir}' -ba support/rpm/twindb-agent.spec
 
 sign-rpm: rpmmacros
 	rpm --addsign ${top_dir}/RPMS/noarch/twindb-${client_version}-${client_release}.noarch.rpm

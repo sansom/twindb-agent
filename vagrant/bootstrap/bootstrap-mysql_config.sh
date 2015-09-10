@@ -7,7 +7,7 @@ idx=`hostname | sed 's/[a-z]//g'`
 
 dist_id=`lsb_release -is`
 case "${dist_id}" in
-    "CentOS")
+    "CentOS"|"AmazonAMI")
         mysql_config_file="/etc/my.cnf"
         ;;
     "Ubuntu"|"Debian")

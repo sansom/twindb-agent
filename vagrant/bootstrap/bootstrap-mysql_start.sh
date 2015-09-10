@@ -28,9 +28,9 @@ function wait_for_mysql() {
     done
 }
 
-release=`uname -r | awk -F. '{ print $4 }'`
+release=`lsb_release -rs`
 
-if [ "$release" == "el5" ]
+if [ "$release" == "5.10" ]
 then
     useradd mysql --gid mysql --shell /sbin/nologin
     chown -R mysql:mysql /var/run/mysqld
@@ -39,7 +39,7 @@ fi
 MYSQL_PASSWORD=""
 dist_id=`lsb_release -is`
 case "${dist_id}" in
-    "CentOS")
+    "CentOS"|"AmazonAMI")
         service mysqld start
         ;;
     "Ubuntu" | "Debian")

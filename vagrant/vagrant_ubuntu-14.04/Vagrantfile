@@ -15,7 +15,7 @@ Vagrant.configure(2) do |config|
 
   config.vm.define "db01" do |db01|
     db01.vm.box = "chef/ubuntu-14.04"
-    db01.vm.provision :shell, path: "../bootstrap/bootstrap-db01.sh"
+    db01.vm.hostname = "db01"
     db01.vm.provision :shell, path: "../bootstrap/bootstrap-network.sh"
     db01.vm.provision :shell, path: "../bootstrap/bootstrap-packages.sh"
     db01.vm.provision :shell, path: "../bootstrap/bootstrap-mysql_config.sh"
@@ -26,7 +26,7 @@ Vagrant.configure(2) do |config|
   end
   config.vm.define "db02" do |db02|
     db02.vm.box = "chef/ubuntu-14.04"
-    db02.vm.provision :shell, path: "../bootstrap/bootstrap-db02.sh"
+    db02.vm.hostname = "db02"
     db02.vm.provision :shell, path: "../bootstrap/bootstrap-network.sh"
     db02.vm.provision :shell, path: "../bootstrap/bootstrap-packages.sh"
     db02.vm.provision :shell, path: "../bootstrap/bootstrap-mysql_config.sh"
@@ -37,7 +37,7 @@ Vagrant.configure(2) do |config|
   end
   config.vm.define "db03" do |db03|
     db03.vm.box = "chef/ubuntu-14.04"
-    db03.vm.provision :shell, path: "../bootstrap/bootstrap-db03.sh"
+    db03.vm.hostname = "db03"
     db03.vm.provision :shell, path: "../bootstrap/bootstrap-network.sh"
     db03.vm.provision :shell, path: "../bootstrap/bootstrap-packages.sh"
     db03.vm.provision :shell, path: "../bootstrap/bootstrap-mysql_config.sh"

@@ -6,7 +6,7 @@ MYSQL_ARGS="-u root"
 MYSQL_PASSWORD=""
 dist_id=`lsb_release -is`
 case "${dist_id}" in
-    "CentOS")
+    "CentOS"|"AmazonAMI")
         ;;
     "Ubuntu" | "Debian")
         MYSQL_PASSWORD="MySuperPassword"

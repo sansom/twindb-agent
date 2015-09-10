@@ -25,7 +25,7 @@ fi
 
 dist_id=`lsb_release -is`
 case "${dist_id}" in
-    "CentOS")
+    "CentOS"|"AmazonAMI")
         sed -i "s/HOSTNAME=localhost.localdomain/HOSTNAME=${hostname}/" /etc/sysconfig/network
         ;;
     "Ubuntu" | "Debian")

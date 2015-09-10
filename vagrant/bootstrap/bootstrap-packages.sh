@@ -7,13 +7,13 @@ function get_epel_rpm() {
     release=$1
 
     case ${release} in
-        "el5")
+        5.*)
             echo "https://dl.fedoraproject.org/pub/epel/epel-release-latest-5.noarch.rpm"
             ;;
-        "el6")
+        6.*|2015.03)
             echo "https://dl.fedoraproject.org/pub/epel/epel-release-latest-6.noarch.rpm"
             ;;
-        "el7")
+        7.*)
             echo "https://dl.fedoraproject.org/pub/epel/epel-release-latest-7.noarch.rpm"
             ;;
     esac
@@ -23,13 +23,13 @@ function get_oracle_rpm() {
     release=$1
 
     case ${release} in
-        "el5")
+        5.*)
             echo "http://dev.mysql.com/get/mysql-community-release-el5-5.noarch.rpm"
             ;;
-        "el6")
+        6.*|2015.03)
             echo "http://dev.mysql.com/get/mysql-community-release-el6-5.noarch.rpm"
             ;;
-        "el7")
+        7.*)
             echo "http://dev.mysql.com/get/mysql-community-release-el7-5.noarch.rpm"
             ;;
     esac
@@ -38,18 +38,23 @@ function get_oracle_rpm() {
 
 function install_packages_centos() {
 
-    release=`uname -r | awk -F. '{ print $4 }'`
-
-    # TwinDB repo
-    curl -s https://packagecloud.io/install/repositories/twindb/main/script.rpm.sh | bash
+    release=`lsb_release -rs`
 
     # EPEL repo
-    wget -O /tmp/epel.rpm `get_epel_rpm ${release}`
-    rpm -Uhv /tmp/epel.rpm
+    rpm -q epel-release || (wget -O /tmp/epel.rpm `get_epel_rpm ${release}` ; rpm -Uhv /tmp/epel.rpm )
 
     # Oracle repo
-    wget -O /tmp/oracle.rpm `get_oracle_rpm ${release}`
-    rpm -Uhv /tmp/oracle.rpm
+    # DBD depends on mysql55-libs.x86_64 that conflicts with Oracle's lib
+    if [ "${release}" != "2015.03" ]
+    then
+        wget -O /tmp/oracle.rpm `get_oracle_rpm ${release}`
+        rpm -Uhv /tmp/oracle.rpm
+    fi
+
+    # TwinDB repo
+    wget -O /tmp/twindb-release.rpm https://repo.twindb.com/twindb-release-0.0.10-1.noarch.rpm
+    yum -y --nogpgcheck install /tmp/twindb-release.rpm
+
 
     packages="
     mysql-server
@@ -62,21 +67,27 @@ function install_packages_centos() {
     rpm-build
     chkconfig"
 
+    YUM_ARGS="-y --enablerepo=epel"
+    if ! test -z "`yum  -y repolist | grep mysql-connectors-community`"
+    then
+        YUM_ARGS="${YUM_ARGS} --disablerepo=mysql-connectors-community"
+    fi
+
     for i in `seq 3`
     do
-        yum -y --disablerepo=mysql-connectors-community install ${packages} && break
+        yum ${YUM_ARGS} install ${packages} && break
     done
 
     case ${release} in
-        "el5")
+        5.*)
             chkconfig mysqld on
             ;;
-        "el6")
+        6.*|2015.03)
             chkconfig mysqld on
             chkconfig haveged on
             service haveged start
             ;;
-        "el7")
+        7.*)
             chkconfig mysqld on
             chkconfig haveged on
             service haveged start
@@ -171,7 +182,7 @@ function install_packages_debian() {
 
 dist_id=`lsb_release -is`
 case "${dist_id}" in
-    "CentOS")
+    "CentOS"|"AmazonAMI")
         install_packages_centos
         ;;
     "Ubuntu" | "Debian")
