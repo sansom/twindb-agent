@@ -32,6 +32,6 @@ notifications:
   webhooks:
     urls:
       secure: RjeUvztC/Rwj/vJ+10v8u/aSzRuBFvzElGCMLufFkLs+MAtlre9F55zacxJFR+/rt3oBOzIUoJA1mWE9ERLrYlSBncaDyOAARrNCA4AViP+FW+qZcNlH0oVQaBAb/guZCm+IO+qgckmU4zfzfdJsunrdWE91cFLhQnZk4ZD3aE7cUPEADnlgV4TeC/LHGGW+5RbRnRKMExqdjzyFbotkfsLp23P8ltC1Xm3+LABvblgd5DRHBbZXBpLLM+tutU7iyW3jbLXOVssjSdFYKNCL4r6CV24QW6D+9ebpLylpRqwZYJosgJseG37OY5NmnSAranSUA1w6ss+dgx8ZTgU7ohwwUGKmlt/g5EMshEnSFzH16PRYkMsg69b0Ao8zcbyQPuDZnIuWF3IobNyR9cT1YyCzlOkDEcb3KppNzL1/4FW9mnFW9r1Zunu//PiZie5EI/p2SHG0LwUw2j34qx92bhrzwQM2BpgxE2UyAOfRK/rd8NMVtfWKFlKQD47FvG9kEIJn2VOjpBOz9ZGqVPW/5ppuvPT0GUb7jjvHpR+mDtdlGeGlaKFhbmhOv3dTHzRoebdcXTk4R9tkZxYOZxmY+sio2ewCttwuW2VI1+sufgGEWbyJjyePIHbuZ6PFnwd2/d+Wa04zJF4lzthEl4UkApJyb/hp2Tguvyx1Jw6qlSE=
-    on_success: change  # options: [always|never|change] default: always
+    on_success: always  # options: [always|never|change] default: always
     on_failure: always  # options: [always|never|change] default: always
-    on_start: never     # options: [always|never|change] default: always
+    on_start: always     # options: [always|never|change] default: always
