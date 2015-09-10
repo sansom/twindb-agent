@@ -18,9 +18,9 @@ Vagrant.configure(2) do |config|
     db01.vm.box_url = "https://github.com/mitchellh/vagrant-aws/raw/master/dummy.box"
     db01.vm.provider :aws do |aws, override|
       aws.instance_type = "t2.micro"
-      aws.access_key_id = "AKIAJTCG7WSXYWFGE7WA"
-      aws.secret_access_key = "IIv44dv/dE4jv0pa8/VavKntn3vyLR+lZ4klnFeK"
-      aws.keypair_name = "id_rsa-twindb_test.pem"
+      aws.access_key_id = ENV['TWINDB_KITCHEN_AWS_ACCESS_KEY']
+      aws.secret_access_key = ENV['TWINDB_KITCHEN_AWS_SECRET_KEY']
+      aws.keypair_name = ENV['TWINDB_KITCHEN_AWS_SSH_KEY_ID']
       aws.ami = "ami-d5c5d1e5"
       aws.region = "us-west-2"
       aws.user_data = "#!/bin/bash\necho 'Defaults:ec2-user !requiretty' > /etc/sudoers.d/888-vagrant-cloud-init-requiretty"
