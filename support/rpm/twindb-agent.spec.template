@@ -4,7 +4,7 @@ Release:	@@RELEASE@@
 Summary:	TwinDB agent for online MySQL backups
 
 Group:		Applications/Databases
-License:	GPL version 2
+License:	Apache License Version 2.0
 URL:		https://twindb.com
 Source0:	%{name}-%{version}.tar.gz
 BuildRoot:	%(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
