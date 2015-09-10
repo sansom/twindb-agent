@@ -30,7 +30,7 @@ function wait_for_mysql() {
 
 release=`lsb_release -rs`
 
-if [ "$release" == "5.10" ]
+if ! test -z "`echo ${release} | grep ^5\.`"
 then
     useradd mysql --gid mysql --shell /sbin/nologin
     chown -R mysql:mysql /var/run/mysqld
