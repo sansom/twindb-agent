@@ -13,7 +13,7 @@ PYTHON := $(shell rpm --eval '%{__python}')
 PYTHON_LIB := $(shell rpm --eval '%{python_sitelib}')
 else
 PYTHON := python
-PYTHON_LIB := $(shell %(PYTHON) -c "from distutils.sysconfig import get_python_lib; import sys; sys.stdout.write(get_python_lib())")
+PYTHON_LIB := $(shell $(PYTHON) -c "from distutils.sysconfig import get_python_lib; import sys; sys.stdout.write(get_python_lib())" )
 endif
 
 
