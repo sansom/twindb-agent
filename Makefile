@@ -6,14 +6,19 @@ pwd := $(shell pwd)
 top_dir = ${pwd}/${build_dir}/rpmbuild
 
 ifeq ($(shell lsb_release -is),AmazonAMI)
-PYTHON := $(shell rpm --eval '%{__python}')
-PYTHON_LIB := $(shell rpm --eval '%{python_sitelib}')
+	PYTHON := $(shell rpm --eval '%{__python}')
+	PYTHON_LIB := $(shell rpm --eval '%{python_sitelib}')
 else ifeq ($(shell lsb_release -is),CentOS)
-PYTHON := $(shell rpm --eval '%{__python}')
-PYTHON_LIB := $(shell rpm --eval '%{python_sitelib}')
+ifneq ($(findstring 5.,$(shell lsb_release -rs) ), )
+	PYTHON := /usr/bin/python26
+	PYTHON_LIB := $(shell $(PYTHON) -c "from distutils.sysconfig import get_python_lib; import sys; sys.stdout.write(get_python_lib())" )
 else
-PYTHON := python
-PYTHON_LIB := $(shell $(PYTHON) -c "from distutils.sysconfig import get_python_lib; import sys; sys.stdout.write(get_python_lib())" )
+	PYTHON := $(shell rpm --eval '%{__python}')
+	PYTHON_LIB := $(shell rpm --eval '%{python_sitelib}')
+endif
+else
+	PYTHON := python
+	PYTHON_LIB := $(shell $(PYTHON) -c "from distutils.sysconfig import get_python_lib; import sys; sys.stdout.write(get_python_lib())" )
 endif
 
 
@@ -82,7 +87,7 @@ release: clean
 	python setup.py bdist_wheel upload
 
 dist: clean
-	python setup.py sdist
+	$(PYTHON) setup.py sdist
 	# python setup.py bdist_wheel
 	ls -l dist
 

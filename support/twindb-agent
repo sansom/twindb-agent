@@ -10,7 +10,17 @@
 ### END INIT INFO
 
 action=$1
-pid_file=`python -c "import twindb_agent.globals; print(twindb_agent.globals.pid_file)"`
+PYTHON="python"
+distributor=`lsb_release -is`
+if [ "${distributor}" == "CentOS" ]
+then
+    release=`lsb_release -rs`
+    if ! test -z "`echo ${release} | grep ^5\.`"
+    then
+        PYTHON="python26"
+    fi
+fi
+pid_file=`${PYTHON} -c "import twindb_agent.globals; print(twindb_agent.globals.pid_file)"`
 log_file=/var/log/twindb/twindb-agent.log
 TWINDB_AGENT_BINARY=/usr/bin/twindb-agent
 

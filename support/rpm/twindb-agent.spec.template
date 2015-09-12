@@ -17,15 +17,32 @@ Obsoletes:  twindb
 # hard links fail on vagrant machines. Comment it out if that's fixed
 %global __os_install_post %(echo '%{__os_install_post}' | sed -e 's!/usr/lib[^[:space:]]*/brp-python-bytecompile[[:space:]].*$!!g')
 
-%if 0%{?rhel}
-%if %{?rhel} == 5
+BuildRequires: redhat-rpm-config
+
+%define distribution_type %(/usr/lib/rpm/redhat/dist.sh --disttype)
+%define distribution_number %(/usr/lib/rpm/redhat/dist.sh --distnum)
+
+%if %{distribution_type} == el
+%if %{distribution_number} == 5
+
+%define python /usr/bin/python26
+%define python_sitelib %(%{python} -c "from distutils.sysconfig import get_python_lib; import sys; sys.stdout.write(get_python_lib())")
 BuildRequires:	redhat-lsb
 Requires: 	python26
-%endif
+
 %else
+
 BuildRequires:	redhat-lsb-core
 Requires: 	python >= 2.6.0
 Requires:	ntpdate
+
+%endif
+%else
+
+BuildRequires:	redhat-lsb-core
+Requires: 	python >= 2.6.0
+Requires:	ntpdate
+
 %endif
 
 Requires:	gpg

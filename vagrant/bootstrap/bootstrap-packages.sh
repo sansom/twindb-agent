@@ -65,7 +65,13 @@ function install_packages_centos() {
     redhat-lsb-core
     vim
     rpm-build
+    redhat-rpm-config
     chkconfig"
+
+    if ! test -z "`echo ${release} | grep ^5\.`"
+    then
+        packages="${packages} python26"
+    fi
 
     YUM_ARGS="-y --enablerepo=epel"
     if ! test -z "`yum  -y repolist | grep mysql-connectors-community`"

@@ -57,7 +57,7 @@ then
     exit
 fi
 
-PID_FILE=`python -c "import twindb_agent.globals; print(twindb_agent.globals.pid_file)"`
+PID_FILE=`${PYTHON} -c "import twindb_agent.globals; print(twindb_agent.globals.pid_file)"`
 
 
 # If --stop option if given - kill the agent
