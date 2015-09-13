@@ -15,8 +15,11 @@ script:
 - git clone https://github.com/twindb/twindb-agent-testing.git
 - cp travisci-aws.pem ./twindb-agent-testing/
 - cd ./twindb-agent-testing
-- bundle install --without kitchen_vagrant --binstubs --path vendor/bundle
+- bundle install --without kitchen_vagrant --binstubs --path vendor/bundle --jobs=3 --retry=3
 - "./bin/rake travis"
+cache:
+  directories:
+  - $TRAVIS_BUILD_DIR/twindb-agent-testing/vendor/bundle
 env:
   global:
   - secure: U98iOBuiSIfwjJqHhUzsksyP9ssj+fwP2tNhITOdzcaIgLaV2RH4UqxuAtQyk/NPMN8jTBmIkDirEGaWvx39/8E2RJsob9X0B7Fn6IqQU9L50Y9toVG5e1739kUW/+mtfmscvP37NcHF50tSUJAjcn5G2liGfIKHWEBn5iVGFDAqNF8YjIhtKkksX8eeSoWIfVVF110LY9n3bRjhlTPU1sWT2jSvmSlfMErdy4mhqk5syQFJK6rOXA/aiLYq065ZnRzYFeqkyfa1mVZl1JiMNtC+9+8hT+N8C7ltBQeVhx5tndtYLHbDUZrW0jwQb0GejH1TU40LEvsce0MR4kVr7Wd9rjzMdqqwqi8ljN4EXM6GeWEEiDegS3CCA8fymk6xW6BKGWTkQnZ+pqEiOniYi8Tig9YzhRl/bqPpG4HpesZbsT7qv7Xn2zGvQ2EJhF+iHT9WZHWS8WuHA2LXarMoh6nKybXaTS/hjNVtoHtjDKxUgbOM91yHXLEblV8gjUokp5y3iYDf+f+gkPKOfF8ANIztgbdSYsUG0b9FnQv+/xgoxv0C8055PJ63nNB5PLn68zPMTia7QisqspwCMAh3g3ohW0OzCzA546rsnWpg8ZsaBTuyL9yolZsVnNfJkdOAbNCnOzuq2c7XsuTlwaCnUY/dq3r2Xf+XFB9OUXMQRj8=
