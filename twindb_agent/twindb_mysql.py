@@ -62,6 +62,7 @@ class MySQL(object):
                                             self.mysql_user = config.get(section, "user")
                                         if config.has_option(section, "password"):
                                             self.mysql_password = config.get(section, "password")
+                                            self.mysql_password = self.mysql_password.strip("\"")
                             except ConfigParser.ParsingError as err:
                                 log.debug(err)
                                 log.debug("Ignoring options file %s" % options_file)
@@ -158,7 +159,7 @@ class MySQL(object):
 
         # list of missing privileges
         missing_privileges = []
-        required_privileges = ['RELOAD', 'SUPER', 'LOCK TABLES', 'REPLICATION CLIENT', 'CREATE TABLESPACE']
+        required_privileges = ["RELOAD", "SUPER", "LOCK TABLES", "REPLICATION CLIENT", "CREATE TABLESPACE"]
 
         try:
             conn = self.get_mysql_connection()
