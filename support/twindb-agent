@@ -10,6 +10,12 @@
 ### END INIT INFO
 
 action=$1
+
+if test -f /lib/lsb/init-functions
+then
+    . /lib/lsb/init-functions
+fi
+
 PYTHON="python"
 distributor=`lsb_release -is`
 if [ "${distributor}" == "CentOS" ]

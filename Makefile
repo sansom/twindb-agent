@@ -159,18 +159,19 @@ deb-dependencies:
 
 deb-changelog:
 	@echo "Generating changelog"
-	@export DEBEMAIL="TwinDB Packager (TwinDB packager key) <packager@twindb.com>" ; \
+	export DEBEMAIL="TwinDB Packager (TwinDB packager key) <packager@twindb.com>" ; \
 	export version=${agent_version}-${agent_release} ; \
 	cd support/deb/ ; \
 	rm -f debian/changelog ; \
 	export distr=`lsb_release -sc` ; \
-	dch -v $$version.$$distr --create --package twindb-agent --distribution $$distr --force-distribution "New version $$version" ;
+	dch -v $$version+$$distr --create --package twindb-agent --distribution $$distr --force-distribution "New version $$version" ;
 
 
 build-deb: deb-dependencies dist deb-changelog
 	mkdir -p "${build_dir}"
 	cp "dist/twindb-agent-${agent_version}.tar.gz" "${build_dir}/twindb-agent_${agent_version}.orig.tar.gz"
 	tar zxf "${build_dir}/twindb-agent_${agent_version}.orig.tar.gz" -C "${build_dir}"
-	cp -LR support/deb/debian/ "${build_dir}/twindb-agent-${agent_version}"
+	cp -LR support/deb/debian.`lsb_release -sc`/ "${build_dir}/twindb-agent-${agent_version}/debian"
+	cp -LR support/deb/debian/changelog "${build_dir}/twindb-agent-${agent_version}/debian"
 	cd "${build_dir}/twindb-agent-${agent_version}" && debuild -us -uc
 
