@@ -100,7 +100,7 @@ def register(code):
     log = logging.getLogger("twindb_console")
 
     # Check that the agent can connect to local MySQL
-    mysql = twindb_agent.twindb_mysql.MySQL()
+    mysql = twindb_agent.twindb_mysql.MySQL(logger_name="twindb_console")
     conn = mysql.get_mysql_connection()
     if conn:
         cursor = conn.cursor()

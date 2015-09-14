@@ -20,12 +20,12 @@ except ImportError:
 
 
 class MySQL(object):
-    def __init__(self, mysql_user=None, mysql_password=None):
+    def __init__(self, mysql_user=None, mysql_password=None, logger_name="twindb_remote"):
         self.agent_config = twindb_agent.config.AgentConfig.get_config()
         self.mysql_user = mysql_user
         self.mysql_password = mysql_password
 
-        self.logger = logging.getLogger("twindb_remote")
+        self.logger = logging.getLogger(logger_name)
 
     def get_mysql_connection(self):
         """
