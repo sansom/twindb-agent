@@ -132,7 +132,7 @@ function install_packages_debian() {
             packages="${packages} chkconfig"
             ;;
         "jessie")
-            packages="${packages} chkconfig"
+            packages="${packages} chkconfig dh-systemd"
             ;;
         "precise")
             packages="${packages} chkconfig"
