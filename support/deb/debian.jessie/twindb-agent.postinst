@@ -14,7 +14,7 @@ then
     echo "================================================================================"
 fi
 
-invoke-rc.d twindb-agent start
+deb-systemd-invoke start twindb-agent
 
 #DEBHELPER#
 

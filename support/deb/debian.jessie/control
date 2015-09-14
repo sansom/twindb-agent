@@ -4,7 +4,7 @@ Maintainer: TwinDB Packager (TwinDB packager key) <packager@twindb.com>
 Section: database
 Priority: optional
 Standards-Version: 3.9.6
-Build-Depends: debhelper (>= 7.0.50~), python (>= 2.6.0)
+Build-Depends: debhelper (>= 7.0.50~), python (>= 2.6.0), dh-systemd
 Vcs-Browser: https://github.com/twindb/twindb-agent
 X-Python-Version: >= 2.6
 
