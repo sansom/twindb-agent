@@ -12,7 +12,7 @@ Package: twindb-agent
 Architecture: all
 Section: database
 Priority: optional
-Depends: ${misc:Depends}, lsof, percona-xtrabackup, gnupg, python (>= 2.6.0), mysql-connector-python (>= 2.0.0)
+Depends: ${misc:Depends}, lsof, percona-xtrabackup, gnupg, python (>= 2.6.0), mysql-connector-python (>= 2.0.0), python2.6
 Replaces: twindb
 Description: backup and recovery tool for MySQL
  TwinDB is online backup service for MySQL.
