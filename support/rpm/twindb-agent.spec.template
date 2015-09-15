@@ -19,11 +19,11 @@ Obsoletes:  twindb
 
 BuildRequires: redhat-rpm-config
 
-%define distribution_type %(/usr/lib/rpm/redhat/dist.sh --disttype)
-%define distribution_number %(/usr/lib/rpm/redhat/dist.sh --distnum)
+%define distribution_type %(test -x /usr/lib/rpm/redhat/dist.sh && /usr/lib/rpm/redhat/dist.sh --disttype)
+%define distribution_number %(test -x /usr/lib/rpm/redhat/dist.sh && /usr/lib/rpm/redhat/dist.sh --distnum)
 
-%if %{distribution_type} == el
-%if %{distribution_number} == 5
+%if "%{distribution_type}" == el
+%if "%{distribution_number}" == 5
 
 %define python /usr/bin/python26
 %define python_sitelib %(%{python} -c "from distutils.sysconfig import get_python_lib; import sys; sys.stdout.write(get_python_lib())")
