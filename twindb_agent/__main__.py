@@ -1,5 +1,6 @@
 import logging
 import optparse
+import os
 import sys
 import signal
 import twindb_agent.__about__
@@ -47,6 +48,7 @@ def main():
     opt_parser = get_opt_parser()
     (options, args) = opt_parser.parse_args()
 
+    os.environ["PATH"] += ":/sbin:/usr/sbin"
     read_agent_config(options)
 
     # Create loggers

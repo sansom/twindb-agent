@@ -1,16 +1,19 @@
 .PHONY: clean-pyc clean-build docs clean scripts
-agent_version = $(shell python -c 'from twindb_agent import __about__; print(__about__.__version__)')
-agent_release = 1
 build_dir = build
 pwd := $(shell pwd)
 top_dir = ${pwd}/${build_dir}/rpmbuild
 
+ifeq ($(shell which lsb_release 2>/dev/null),)
+exit-lsb_release:
+	@ echo "Please install lsb_release"
+	@ exit -1
+else
 ifeq ($(shell lsb_release -is),AmazonAMI)
 	PYTHON := $(shell rpm --eval '%{__python}')
 	PYTHON_LIB := $(shell rpm --eval '%{python_sitelib}')
 else ifeq ($(shell lsb_release -is),CentOS)
 ifneq ($(findstring 5.,$(shell lsb_release -rs) ), )
-	PYTHON := /usr/bin/python26
+	PYTHON := python26
 	PYTHON_LIB := $(shell $(PYTHON) -c "from distutils.sysconfig import get_python_lib; import sys; sys.stdout.write(get_python_lib())" )
 else
 	PYTHON := $(shell rpm --eval '%{__python}')
@@ -21,6 +24,21 @@ else
 	PYTHON_LIB := $(shell $(PYTHON) -c "from distutils.sysconfig import get_python_lib; import sys; sys.stdout.write(get_python_lib())" )
 endif
 
+endif
+
+ifeq ($(shell which $(PYTHON) 2>/dev/null),)
+exit-python:
+	@ echo "Please install $(PYTHON)"
+	@ if [ $(PYTHON) = "python26" ]; \
+		then \
+			echo "$(PYTHON) can be installed from EPEL repo (https://dl.fedoraproject.org/pub/epel/epel-release-latest-5.noarch.rpm) " ; \
+		fi
+	@ exit -1
+else
+
+
+agent_version = $(shell $(PYTHON) -c 'from twindb_agent import __about__; print(__about__.__version__)')
+agent_release = 1
 
 help:
 	@echo "clean - remove all build, test, coverage and Python artifacts"
@@ -83,10 +101,10 @@ docs:
 	open docs/_build/html/index.html
 
 release: clean
-	python setup.py sdist upload
-	python setup.py bdist_wheel upload
+	$(PYTHON) setup.py sdist upload
+	$(PYTHON)setup.py bdist_wheel upload
 
-dist: clean
+dist: clean check-deps
 	$(PYTHON) setup.py sdist
 	# python setup.py bdist_wheel
 	ls -l dist
@@ -95,10 +113,10 @@ scripts:
 	export PYTHONS=`echo $(PYTHON) | sed 's/\//\\\\\//g'` ; \
 	cat scripts/twindb-agent.sh.in | sed "s/@PYTHON@/$$PYTHONS/" > scripts/twindb-agent
 
-build: scripts clean
-	python setup.py build
+build: check-deps scripts clean
+	$(PYTHON) setup.py build
 
-install: scripts clean
+install: check-deps scripts clean
 	if test -z "${DESTDIR}" ; \
 	then $(PYTHON) setup.py install \
 		--prefix /usr \
@@ -112,13 +130,40 @@ install: scripts clean
 		install -m 644 support/twindb-agent.man "${DESTDIR}/etc/logrotate.d/twindb-agent" ; \
 	fi
 
+agent_deps = gpg lsof ntpdate ntpd tar chkconfig mysql innobackupex
+
+check-deps: check-dep-connector check-dep-mysqld
+	@echo "Checking dependencies"
+	@export PATH=$$PATH:/usr/sbin:/sbin; for p in ${agent_deps}; \
+    do echo -n "$$p ... " ; \
+        if test -z "`which $$p`"; \
+        then \
+            echo "$$p ... NOT installed"; \
+            exit -1; \
+        else \
+            echo "installed"; \
+        fi ; \
+    done
+	echo "Dependencies are installed"
+
+check-dep-connector:
+	@ $(PYTHON) -c "import mysql.connector" ; \
+	if [ $$? -ne 0 ]; then \
+		echo "Please install mysql-connector-python"; \
+		echo "It can be installed from Oracle repo https://dev.mysql.com/downloads/repo/" ; \
+		exit -1 ; \
+	fi
+
+check-dep-mysqld:
+	@ echo ""
+
 # Packaging
 package:
 	@if ! test -z "`which yum 2>/dev/null`"; then make build-rpm; fi
 	@if ! test -z "`which apt-get 2>/dev/null`"; then make deb-dependencies build-deb; fi
 
 # RPM stuff
-build-rpm: spec dist
+build-rpm: spec dist rpm-dependencies
 	mkdir -p "${top_dir}/SOURCES"
 	mkdir -p "${top_dir}/BUILD"
 	mkdir -p "${top_dir}/SRPMS"
@@ -140,6 +185,21 @@ rpmmacros:
 spec:
 	sed -e "s/@@VERSION@@/${agent_version}/" -e "s/@@RELEASE@@/${agent_release}/" \
 		support/rpm/twindb-agent.spec.template > support/rpm/twindb-agent.spec
+
+rpm_packages = rpm-build redhat-rpm-config redhat-lsb-core
+
+rpm-dependencies:
+	@echo "Checking dependencies"
+	@for p in ${rpm_packages}; \
+    do echo -n "$$p ... " ; \
+        if test -z "`rpm -qa | grep $$p`"; \
+        then \
+            echo "$$p ... NOT installed"; \
+            yum -y install $$p; \
+        else \
+            echo "installed"; \
+        fi ; \
+    done
 
 # Debian stuff
 deb_packages = build-essential devscripts debhelper
@@ -175,3 +235,4 @@ build-deb: deb-dependencies dist deb-changelog
 	cp -LR support/deb/debian/changelog "${build_dir}/twindb-agent-${agent_version}/debian"
 	cd "${build_dir}/twindb-agent-${agent_version}" && debuild -us -uc
 
+endif
