@@ -102,6 +102,12 @@ class MySQL(object):
         except OSError as err:
             log.error("Failed to run command %r. %s" % (cmd, err))
             return None
+        except IndexError as err:
+            if not cout:
+                cout = "NO OUTPUT"
+            log.error("Failed to parse lsof output: %s" % cout)
+            log.error(err)
+            return None
         return mysql_socket
 
     def get_slave_status(self):

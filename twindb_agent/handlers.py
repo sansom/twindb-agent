@@ -167,7 +167,6 @@ def register(code):
     log.debug("Getting list of local IP addresses")
     try:
         log.debug("Running: %s" % cmd)
-        os.environ["PATH"] += ":/sbin"
         p = subprocess.Popen(cmd, stdout=subprocess.PIPE, shell=True)
         cout, cerr = p.communicate()
         log.debug("STDOUT: %s" % cout)
