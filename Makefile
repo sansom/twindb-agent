@@ -92,8 +92,8 @@ dist: clean
 	ls -l dist
 
 scripts:
-	export PYTHONS=`echo $(PYTHON) | sed 's/\//\\\\\//g'` ; \
-	cat scripts/twindb-agent.sh.in | sed "s/@PYTHON@/$$PYTHONS/" > scripts/twindb-agent
+	mkdir -p "${DESTDIR}/usr/share/twindb/"
+	echo "PYTHON=$(PYTHON)" > "${DESTDIR}/usr/share/twindb/twindb-agent-inc.sh"
 
 build: scripts clean
 	$(PYTHON) setup.py build

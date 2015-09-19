@@ -16,16 +16,9 @@ then
     . /lib/lsb/init-functions
 fi
 
-PYTHON="python"
-distributor=`lsb_release -is`
-if [ "${distributor}" == "CentOS" ]
-then
-    release=`lsb_release -rs`
-    if ! test -z "`echo ${release} | grep ^5\.`"
-    then
-        PYTHON="python26"
-    fi
-fi
+PYTHON=python
+source /usr/share/twindb/twindb-agent-inc.sh
+
 pid_file=`${PYTHON} -c "import twindb_agent.globals; print(twindb_agent.globals.pid_file)"`
 log_file=/var/log/twindb/twindb-agent.log
 TWINDB_AGENT_BINARY=/usr/bin/twindb-agent

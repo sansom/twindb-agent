@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 
 set -eu
-PYTHON="@PYTHON@"
+
+PYTHON=python
+source /usr/share/twindb/twindb-agent-inc.sh
 
 function is_instance_running() {
     # Check if another instance is running

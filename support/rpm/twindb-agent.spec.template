@@ -135,6 +135,7 @@ fi
 %{_sysconfdir}/logrotate.d/twindb-agent
 %{python_sitelib}/twindb_agent
 %{python_sitelib}/twindb_agent*.egg-info
+%{_datadir}/twindb/twindb-agent-inc.sh
 
 %if 0%{?rhel}
 %if %{?rhel} != 5

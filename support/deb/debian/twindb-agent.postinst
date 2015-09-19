@@ -1,6 +1,8 @@
 #!/bin/bash -e
 
 chmod 755 /usr/bin/twindb-agent
+mkdir -p /usr/share/twindb/
+echo "PYTHON=python" > /usr/share/twindb/twindb-agent-inc.sh
 
 if [ "`twindb-agent --is-registered`" != "YES" ]
 then
