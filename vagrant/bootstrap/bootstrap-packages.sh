@@ -44,15 +44,11 @@ function install_packages_centos() {
     rpm -q epel-release || (wget -O /tmp/epel.rpm `get_epel_rpm ${release}` ; rpm -Uhv /tmp/epel.rpm )
 
     # Oracle repo
-    # DBD depends on mysql55-libs.x86_64 that conflicts with Oracle's lib
-    if [ "${release}" != "2015.03" ]
-    then
-        wget -O /tmp/oracle.rpm `get_oracle_rpm ${release}`
-        rpm -Uhv /tmp/oracle.rpm
-    fi
+    wget -O /tmp/oracle.rpm `get_oracle_rpm ${release}`
+    rpm -Uhv /tmp/oracle.rpm
 
     # TwinDB repo
-    wget -O /tmp/twindb-release.rpm https://repo.twindb.com/twindb-release-0.0.10-1.noarch.rpm
+    wget -O /tmp/twindb-release.rpm https://repo.twindb.com/twindb-release-0.0.11-1.noarch.rpm
     yum -y --nogpgcheck install /tmp/twindb-release.rpm
 
 
