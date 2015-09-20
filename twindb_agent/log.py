@@ -61,7 +61,7 @@ def create_local_logger(debug=False):
     return logger
 
 
-def create_remote_logger(debug=False):
+def create_remote_logger(debug=False, debug_local=False):
     logger = logging.getLogger("twindb_remote")
 
     log_dir = "/var/log/twindb"
@@ -80,9 +80,10 @@ def create_remote_logger(debug=False):
     file_handler.setFormatter(logging.Formatter(FMT_STR))
     logger.addHandler(file_handler)
 
-    remote_handler = RlogHandler()
-    remote_handler.setFormatter(FMT_REMOTE_STR)
-    logger.addHandler(remote_handler)
+    if not debug_local:
+        remote_handler = RlogHandler()
+        remote_handler.setFormatter(FMT_REMOTE_STR)
+        logger.addHandler(remote_handler)
 
     if debug:
         logger.setLevel(logging.DEBUG)
