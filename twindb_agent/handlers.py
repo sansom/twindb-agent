@@ -381,7 +381,7 @@ def schedule_backup():
         "type": "schedule_backup",
         "params": {}
     }
-    api = twindb_agent.api.TwinDBAPI()
+    api = twindb_agent.api.TwinDBAPI(logger_name="twindb_console")
     api.call(data)
     if api.success:
         log.info("A backup job is successfully registered")

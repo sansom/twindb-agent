@@ -11,7 +11,7 @@ import twindb_agent.handlers
 
 
 class Job(object):
-    def __init__(self, job_order):
+    def __init__(self, job_order, logger_name="twindb_remote"):
         # TODO "params" in a job order is a string on some reason.
         # Until it's fixed decode params
         # https://bugs.launchpad.net/twindb/+bug/1485032
@@ -19,7 +19,8 @@ class Job(object):
         job_order["params"] = job_params
         self.job_order = job_order
         self.agent_config = twindb_agent.config.AgentConfig.get_config()
-        self.logger = logging.getLogger("twindb_remote")
+        self.logger_name = logger_name
+        self.logger = logging.getLogger(logger_name)
         self.server_config = twindb_agent.handlers.get_config()
 
     def process(self):
@@ -38,7 +39,7 @@ class Job(object):
         log.info("Processing job_id = %d" % job_id, log_params)
 
         try:
-            mysql = twindb_agent.twindb_mysql.MySQL()
+            mysql = twindb_agent.twindb_mysql.MySQL(mysql_user=username, mysql_password=password)
             mysql_access_available, missing_mysql_privileges = mysql.has_mysql_access(grant_capability=False)
             if not mysql_access_available:
                 log.error("The MySQL user %s does not have all the required privileges." % username, log_params)
@@ -65,7 +66,7 @@ class Job(object):
             # Execute a job
             module_name = "twindb_agent.job_type.%s" % self.job_order["type"]
             module = __import__(module_name, globals(), locals(), [self.job_order["type"]])
-            ret = module.execute(self.job_order)
+            ret = module.execute(self.job_order, self.logger_name)
 
             log.info("job_id = %d finished with code %d" % (job_id, ret), log_params)
 
