@@ -159,13 +159,19 @@ def take_backup_xtrabackup(job_order, logger_name):
         try:
             process = subprocess.Popen(ssh_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             cout, cerr = process.communicate()
+            if not cout:
+                cout = "<EMPTY>"
+            if not cerr:
+                cerr = "<EMPTY>"
 
             if process.returncode != 0:
-                raise subprocess.CalledProcessError(process.returncode, "%s: %s" % (' '.join(ssh_cmd), cout))
+                raise subprocess.CalledProcessError(process.returncode, "%s: STDOUT: %s STDERR: %s"
+                                                    % (' '.join(ssh_cmd), cout, cerr))
 
             cout_lines = cout.split()
             if len(cout_lines) < 1:
-                raise subprocess.CalledProcessError(process.returncode, "%s: %s" % (' '.join(ssh_cmd), cout))
+                raise subprocess.CalledProcessError(process.returncode, "%s: STDOUT: %s STDERR: %s"
+                                                    % (' '.join(ssh_cmd), cout, cerr))
 
             backup_size = int(cout_lines[0])
         except subprocess.CalledProcessError as e:
