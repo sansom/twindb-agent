@@ -54,7 +54,7 @@ def is_registered():
     :return: True if registered, False if not so much
     """
     agent_config = twindb_agent.config.AgentConfig.get_config()
-    log = logging.getLogger("twindb_remote")
+    log = logging.getLogger("twindb_console")
     log.debug("Getting registration status for server_id = %s" % agent_config.server_id)
 
     twindb_email = "%s@twindb.com" % agent_config.server_id
@@ -78,7 +78,7 @@ def is_registered():
             "enc_public_key": enc_public_key
         }
     }
-    api = twindb_agent.api.TwinDBAPI()
+    api = twindb_agent.api.TwinDBAPI(logger_name="twindb_console")
     api_response = api.call(data)
     if api_response:
         if api_response["registered"]:
@@ -363,7 +363,7 @@ def unregister(delete_backups=False):
             "delete_backups": delete_backups,
         }
     }
-    api = twindb_agent.api.TwinDBAPI()
+    api = twindb_agent.api.TwinDBAPI(logger_name="twindb_console")
     api.call(data)
     if api.success:
         log.info("The server is successfully unregistered")
