@@ -1,17 +1,20 @@
 #!/bin/bash -e
 
-chmod 755 /usr/bin/twindb
+chmod 755 /usr/bin/twindb-agent
 
-if [ "`twindb --is-registered`" != "YES" ]
+if [ "`twindb-agent --is-registered`" != "YES" ]
 then
     echo "================================================================================"
-    echo "TwinDB client is installed."
+    echo "TwinDB agent is installed."
     echo "Now you need to register this server. To do so run:"
     echo ""
-    echo "twindb --register <registration code>"
+    echo "twindb-agent --register <registration code>"
     echo ""
     echo "To obtain the registration code follow link https://console.twindb.com/?get_code"
     echo "================================================================================"
 fi
+
+deb-systemd-invoke start twindb-agent
+
 #DEBHELPER#
 

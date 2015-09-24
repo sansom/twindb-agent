@@ -4,7 +4,7 @@ Release:	@@RELEASE@@
 Summary:	TwinDB agent for online MySQL backups
 
 Group:		Applications/Databases
-License:	GPL version 2
+License:	Apache License Version 2.0
 URL:		https://twindb.com
 Source0:	%{name}-%{version}.tar.gz
 BuildRoot:	%(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
@@ -13,15 +13,38 @@ BuildArch:	noarch
 BuildRequires:	coreutils
 Obsoletes:  twindb
 
-%if 0%{?rhel}
-%if %{?rhel} == 5
-BuildRequires:	redhat-lsb
-Requires: 	python26
+# Disable byte compilinig. Yikes!
+# hard links fail on vagrant machines. Comment it out if that's fixed
+%global __os_install_post %(echo '%{__os_install_post}' | sed -e 's!/usr/lib[^[:space:]]*/brp-python-bytecompile[[:space:]].*$!!g')
+
+BuildRequires: redhat-rpm-config
+
+%define distribution_type %(test -x /usr/lib/rpm/redhat/dist.sh && /usr/lib/rpm/redhat/dist.sh --disttype)
+%define distribution_number %(test -x /usr/lib/rpm/redhat/dist.sh && /usr/lib/rpm/redhat/dist.sh --distnum)
+
+%if "%{distribution_type}" == "el"
+%if "%{distribution_number}" == "5"
+
+%define python /usr/bin/python26
+%define python_sitelib %(%{python} -c "from distutils.sysconfig import get_python_lib; import sys; sys.stdout.write(get_python_lib())")
+BuildRequires:  redhat-lsb
+BuildRequires:  python26
+Requires:       python26
+
+%else
+
+BuildRequires:	redhat-lsb-core
+BuildRequires:	python >= 2.6.0
+Requires: 	python >= 2.6.0
+Requires:	ntpdate
+
 %endif
 %else
+
 BuildRequires:	redhat-lsb-core
 Requires: 	python >= 2.6.0
 Requires:	ntpdate
+
 %endif
 
 Requires:	gpg
@@ -45,8 +68,6 @@ See more details on https://twindb.com
 
 %build
 echo "Building twindb"
-make
-
 
 %install
 %__rm -rf %{buildroot}
@@ -54,12 +75,12 @@ make
 %__install -d %{buildroot}/%{_sysconfdir}/init.d/
 %__install -d %{buildroot}/%{_sysconfdir}/logrotate.d/
 %__install -d %{buildroot}/%{_sysconfdir}/yum.repos.d/
-%__install -m 755 support/twindb %{buildroot}/%{_sysconfdir}/init.d/
+%__install -m 755 support/twindb-agent %{buildroot}/%{_sysconfdir}/init.d/
 
 %post
 if [ -x /sbin/chkconfig ] ; then
-        /sbin/chkconfig --add twindb
-        /sbin/chkconfig twindb on
+        /sbin/chkconfig --add twindb-agent
+        /sbin/chkconfig twindb-agent on
         /sbin/chkconfig ntpd on
 %if 0%{?rhel} == 6 || 0%{?fedora} >= 19
         /sbin/chkconfig ntpdate on
@@ -81,19 +102,17 @@ service ntpd start
 
 if [ "$1" = "1" ]
 then
-    echo "Starting twindb client"
-    service twindb start
+    service twindb-agent start
 else
-    echo "Restarting twindb client"
-    service twindb restart
+    service twindb-agent restart
 fi
 
 if ! test -f %{_sysconfdir}/twindb.cfg
 then
-	echo "TwinDB client is installed."
+	echo "TwinDB agent is installed."
 	echo "Now you need to register this server. To do so run:"
 	echo ""
-	echo "twindb --register <registration code>"
+	echo "twindb-agent --register <registration code>"
 	echo ""
 	echo "To obtain the registration code follow link https://console.twindb.com/?get_code"
 	echo ""
@@ -104,17 +123,19 @@ fi
 
 %preun
 if [ "$1" -eq 0 ] ; then
-%{_sysconfdir}/init.d/twindb stop
-/sbin/chkconfig --del twindb
+%{_sysconfdir}/init.d/twindb-agent stop
+/sbin/chkconfig --del twindb-agent
 fi
 
 %files
 %defattr(-,root,root,-)
 %doc
-%{_bindir}/twindb
-%attr(755, root, root) %{_sysconfdir}/init.d/twindb
-%{_mandir}/man8/twindb.8.gz
-%{_sysconfdir}/logrotate.d/twindb
+%{_bindir}/twindb-agent
+%attr(755, root, root) %{_sysconfdir}/init.d/twindb-agent
+%{_sysconfdir}/logrotate.d/twindb-agent
+%{python_sitelib}/twindb_agent
+%{python_sitelib}/twindb_agent*.egg-info
+%{_datadir}/twindb/twindb-agent-inc.sh
 
 %if 0%{?rhel}
 %if %{?rhel} != 5

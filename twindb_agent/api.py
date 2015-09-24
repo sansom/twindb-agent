@@ -8,10 +8,10 @@ class TwinDBAPI(object):
     """
     Class TwinDBAPI implements communication with dispatcher
     """
-    def __init__(self):
-        self.http = twindb_agent.httpclient.TwinDBHTTPClient()
-        self.gpg = twindb_agent.gpg.TwinDBGPG()
-        self.logger = logging.getLogger("twindb_remote")
+    def __init__(self, logger_name="twindb_remote"):
+        self.http = twindb_agent.httpclient.TwinDBHTTPClient(logger_name=logger_name)
+        self.gpg = twindb_agent.gpg.TwinDBGPG(logger_name=logger_name)
+        self.logger = logging.getLogger(logger_name)
         self.success = None
         self.response = None
         self.data = None

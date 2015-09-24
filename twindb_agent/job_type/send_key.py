@@ -6,13 +6,13 @@ import twindb_agent.config
 import twindb_agent.httpclient
 
 
-def execute(job_order):
+def execute(job_order, logger_name="twindb_remote"):
     """
     Processes send_key job
     :return: nothing
     """
     agent_config = twindb_agent.config.AgentConfig.get_config()
-    log = logging.getLogger("twindb_remote")
+    log = logging.getLogger(logger_name)
 
     # Get owner of the GPG key
     cmd_1 = ["gpg", "--list-packets"]

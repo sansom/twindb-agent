@@ -109,7 +109,7 @@ class Agent(object):
                 if job_order["type"] != "backup":
                     log.warning("We scheduled backup job, but the dispatcher sent '%s' job order." % job_order["type"])
                     log.warning("TwinDB agent will eventually execute the backup job if it's running")
-                    sys.exit(2)
+                    sys.exit(0)
                 try:
                     lockfile = open("/tmp/twindb.xtrabackup.lock", "w+")
                     fcntl.flock(lockfile.fileno(), fcntl.LOCK_EX | fcntl.LOCK_NB)

@@ -2,6 +2,9 @@
 
 set -eu
 
+PYTHON=python
+source /usr/share/twindb/twindb-agent-inc.sh
+
 function is_instance_running() {
     # Check if another instance is running
     local result="NO"
@@ -34,7 +37,7 @@ function is_instance_running() {
 }
 # Find path to twindb agent
 TWINDB_ARGENT=""
-for dir in `python -c "import sys; print ' '.join(x for x in sys.path if x)"`
+for dir in `${PYTHON} -c "import sys; print ' '.join(x for x in sys.path if x)"`
 do
     if test -f ${dir}/twindb_agent/__main__.py
     then
@@ -52,11 +55,11 @@ fi
 # If no options given - print help
 if test -z "$*"
 then
-    python ${TWINDB_ARGENT} --help
+    ${PYTHON} ${TWINDB_ARGENT} --help
     exit
 fi
 
-PID_FILE=`python -c "import twindb_agent.globals; print(twindb_agent.globals.pid_file)"`
+PID_FILE=`${PYTHON} -c "import twindb_agent.globals; print(twindb_agent.globals.pid_file)"`
 
 
 # If --stop option if given - kill the agent
@@ -95,14 +98,14 @@ done
 
 if test -z "`echo $* | grep -w -- --start`"
 then
-    python ${TWINDB_ARGENT} $*
+    ${PYTHON} ${TWINDB_ARGENT} $*
 else
     if [ "`is_instance_running`" = "NO" ]
     then
         set +e
         while true
         do
-            python ${TWINDB_ARGENT} $* &
+            ${PYTHON} ${TWINDB_ARGENT} $* &
             PID=$!
             echo ${PID} > "${PID_FILE}"
             wait ${PID}

@@ -128,7 +128,8 @@ class AgentConfig(object):
             f = open(self.config_file, "w")
             for var in self.__dict__:
                 var = str(var)
-                if not var.startswith("__") and var not in ["mysql_user", "mysql_password"]:
+                if not var.startswith("__") and var not in ["mysql_user", "mysql_password",
+                                                            "config_file", "pid_file"]:
                     if isinstance(self.__dict__[var], int):
                         f.write("%s = %d\n" % (var, self.__dict__[var]))
                     else:

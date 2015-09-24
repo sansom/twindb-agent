@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 
 ### BEGIN INIT INFO
 # Provides: twindb
@@ -10,7 +10,16 @@
 ### END INIT INFO
 
 action=$1
-pid_file=/var/run/twindb.pid
+
+if test -f /lib/lsb/init-functions
+then
+    . /lib/lsb/init-functions
+fi
+
+PYTHON=python
+source /usr/share/twindb/twindb-agent-inc.sh
+
+pid_file=`${PYTHON} -c "import twindb_agent.globals; print(twindb_agent.globals.pid_file)"`
 log_file=/var/log/twindb/twindb-agent.log
 TWINDB_AGENT_BINARY=/usr/bin/twindb-agent
 
@@ -26,13 +35,11 @@ then
     echo "$0 must be run as root"
 fi
 
-function start_agent(){
-    echo -n "Starting TwinDB agent ... "
+function start_agent () {
     ${TWINDB_AGENT_BINARY} --start
-    echo "OK"
 }
 
-function stop_agent() {
+function stop_agent () {
     if test -f ${pid_file}
 	then
 		echo -n "Stopping TwinDB agent ... "

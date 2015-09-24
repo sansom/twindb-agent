@@ -11,28 +11,28 @@ import twindb_agent.utils
 from twindb_agent.handlers import *
 
 
-def execute(job_order):
+def execute(job_order, logger_name="twindb_remote"):
     """
     Meta function that calls actual backup fucntion depending on tool in backup config
     :param job_order:
     :return: what actual backup function returned or -1 if the tool is not supported
     """
-    log = logging.getLogger("twindb_remote")
+    log = logging.getLogger(logger_name)
     log_params = {"job_id": job_order["job_id"]}
     log.info("Starting backup job", log_params)
-    ret = take_backup_xtrabackup(job_order)
+    ret = take_backup_xtrabackup(job_order, logger_name)
     log.info("Backup job is complete", log_params)
     return ret
 
 
-def take_backup_xtrabackup(job_order):
+def take_backup_xtrabackup(job_order, logger_name):
     """
     # Takes backup copy with XtraBackup
     :param job_order: job order
     :return: True if backup was successfully taken or False if it has failed
     """
     agent_config = twindb_agent.config.AgentConfig.get_config()
-    log = logging.getLogger("twindb_remote")
+    log = logging.getLogger(logger_name)
     log_params = {"job_id": job_order["job_id"]}
     server_config = get_config()
     mysql = twindb_agent.twindb_mysql.MySQL(mysql_user=server_config["mysql_user"],
@@ -114,7 +114,7 @@ def take_backup_xtrabackup(job_order):
             }
         }
         log.debug("Saving a record %s" % data, log_params)
-        api = twindb_agent.api.TwinDBAPI()
+        api = twindb_agent.api.TwinDBAPI(logger_name=logger_name)
         api.call(data)
         if api.success:
             log.info("Saved backup copy details", log_params)
@@ -132,12 +132,15 @@ def take_backup_xtrabackup(job_order):
             fd, e_cfg = tempfile.mkstemp()
             os.write(fd, "[mysqld]\n")
             con = mysql.get_mysql_connection()
-            cur = con.cursor()
-            cur.execute("SELECT @@datadir")
-            row = cur.fetchone()
-            os.write(fd, 'datadir="%s"\n' % row[0])
-            cur.close()
-            os.close(fd)
+            if con:
+                cur = con.cursor()
+                cur.execute("SELECT @@datadir")
+                row = cur.fetchone()
+                os.write(fd, 'datadir="%s"\n' % row[0])
+                cur.close()
+                os.close(fd)
+            else:
+                return None
         except IOError as e:
             log.error("Failed to generate extra defaults file. %s" % e, log_params)
             e_cfg = None
@@ -156,13 +159,19 @@ def take_backup_xtrabackup(job_order):
         try:
             process = subprocess.Popen(ssh_cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             cout, cerr = process.communicate()
+            if not cout:
+                cout = "<EMPTY>"
+            if not cerr:
+                cerr = "<EMPTY>"
 
             if process.returncode != 0:
-                raise subprocess.CalledProcessError(process.returncode, "%s: %s" % (' '.join(ssh_cmd), cout))
+                raise subprocess.CalledProcessError(process.returncode, "%s: STDOUT: %s STDERR: %s"
+                                                    % (' '.join(ssh_cmd), cout, cerr))
 
             cout_lines = cout.split()
             if len(cout_lines) < 1:
-                raise subprocess.CalledProcessError(process.returncode, "%s: %s" % (' '.join(ssh_cmd), cout))
+                raise subprocess.CalledProcessError(process.returncode, "%s: STDOUT: %s STDERR: %s"
+                                                    % (' '.join(ssh_cmd), cout, cerr))
 
             backup_size = int(cout_lines[0])
         except subprocess.CalledProcessError as e:
@@ -190,9 +199,6 @@ def take_backup_xtrabackup(job_order):
             log.error("There is no %s in the job order" % param, log_params)
             return -1
     backup_type = job_order["params"]["backup_type"]
-    mysql = twindb_agent.twindb_mysql.MySQL(mysql_user=agent_config.mysql_user,
-                                            mysql_password=agent_config.mysql_password)
-    server_config = get_config()
     xtrabackup_cmd = [
         "innobackupex",
         "--stream=xbstream",

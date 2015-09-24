@@ -1,0 +1,22 @@
+#!/bin/bash -e
+
+chmod 755 /usr/bin/twindb-agent
+mkdir -p /usr/share/twindb/
+echo "PYTHON=python" > /usr/share/twindb/twindb-agent-inc.sh
+
+if [ "`twindb-agent --is-registered`" != "YES" ]
+then
+    echo "================================================================================"
+    echo "TwinDB agent is installed."
+    echo "Now you need to register this server. To do so run:"
+    echo ""
+    echo "twindb-agent --register <registration code>"
+    echo ""
+    echo "To obtain the registration code follow link https://console.twindb.com/?get_code"
+    echo "================================================================================"
+fi
+
+invoke-rc.d twindb-agent start
+
+#DEBHELPER#
+

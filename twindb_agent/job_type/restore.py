@@ -12,13 +12,13 @@ import twindb_agent.httpclient
 import twindb_agent.utils
 
 
-def execute(job_order):
+def execute(job_order, logger_name="twindb_remote"):
     """
     Meta function that calls actual restore fucntion depending on tool in backup config
     :param job_order: job order
     :return: what actual restore function returned or -1 if the tool is not supported
     """
-    log = logging.getLogger("twindb_remote")
+    log = logging.getLogger(logger_name)
     log_params = {"job_id": job_order["job_id"]}
     log.info("Starting restore job: %s"
              % json.dumps(job_order, indent=4, sort_keys=True),

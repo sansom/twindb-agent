@@ -9,9 +9,9 @@ import twindb_agent.config
 
 
 class TwinDBGPG(object):
-    def __init__(self):
+    def __init__(self, logger_name="twindb_local"):
         self.config = twindb_agent.config.AgentConfig.get_config()
-        self.logger = logging.getLogger("twindb_local")
+        self.logger = logging.getLogger(logger_name)
         self.check_gpg()
 
     def is_gpg_key_installed(self, email, key_type="public"):

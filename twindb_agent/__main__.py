@@ -1,5 +1,6 @@
 import logging
 import optparse
+import os
 import sys
 import signal
 import twindb_agent.__about__
@@ -27,6 +28,8 @@ def get_opt_parser():
     parser.add_option("--backup", help="Take backup copy now", action="store_true")
     parser.add_option("-g", "--debug", help="Print debug information",
                       action="store_true", dest="debug", default=False)
+    parser.add_option("--debug-local", help="Print debug information but don't send it to dispatcher",
+                      action="store_true", dest="debug_local", default=False)
 
     return parser
 
@@ -47,12 +50,15 @@ def main():
     opt_parser = get_opt_parser()
     (options, args) = opt_parser.parse_args()
 
+    os.environ["PATH"] += ":/sbin:/usr/sbin"
     read_agent_config(options)
 
     # Create loggers
+    if options.debug_local:
+        options.debug = True
     twindb_agent.log.create_console_logger(options.debug)
     twindb_agent.log.create_local_logger(options.debug)
-    twindb_agent.log.create_remote_logger(options.debug)
+    twindb_agent.log.create_remote_logger(options.debug, options.debug_local)
 
     console = logging.getLogger("twindb_console")
 
