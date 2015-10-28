@@ -78,10 +78,9 @@ class Agent(object):
     def register(reg_code):
         log = logging.getLogger("twindb_console")
         if twindb_agent.handlers.register(reg_code):
-            # TODO Implement commit_registration handler in dispatcher
-            # if not twindb_agent.handlers.commit_registration():
-            #     log.error("Failed to confirm agent registartion")
-            #     sys.exit(2)
+            if not twindb_agent.handlers.commit_registration():
+                log.error("Failed to confirm agent registartion")
+                sys.exit(2)
             log.info("Agent is successfully registered")
             pass
         else:
