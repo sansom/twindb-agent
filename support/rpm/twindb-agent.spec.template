@@ -11,7 +11,7 @@ BuildRoot:	%(mktemp -ud %{_tmppath}/%{name}-%{version}-%{release}-XXXXXX)
 BuildArch:	noarch
 
 BuildRequires:	coreutils
-Obsoletes:  twindb
+Provides:  twindb
 
 # Disable byte compilinig. Yikes!
 # hard links fail on vagrant machines. Comment it out if that's fixed
