@@ -1,0 +1,1 @@
+@daily root yum -q -y --disablerepo=* --enablerepo=twindb_main update
