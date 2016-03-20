@@ -48,7 +48,7 @@ function install_packages_centos() {
     rpm -Uhv /tmp/oracle.rpm
 
     # TwinDB repo
-    wget -O /tmp/twindb-release.rpm https://repo.twindb.com/twindb-release-0.0.11-1.noarch.rpm
+    wget -O /tmp/twindb-release.rpm https://twindb.com/twindb-release-latest.noarch.rpm
     yum -y --nogpgcheck install /tmp/twindb-release.rpm
 
 

@@ -6,6 +6,8 @@ include README.rst
 include Makefile
 include support/twindb-agent
 include support/twindb-agent.logrotate
+include support/twindb-agent.cron.deb
+include support/twindb-agent.cron.rpm
 include support/twindb-agent.man
 include scripts/twindb-agent.sh.in
 

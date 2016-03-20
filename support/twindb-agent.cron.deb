@@ -1,0 +1,1 @@
+@daily root apt-get -y install --only-upgrade twindb-agent

@@ -133,6 +133,8 @@ fi
 %{_bindir}/twindb-agent
 %attr(755, root, root) %{_sysconfdir}/init.d/twindb-agent
 %{_sysconfdir}/logrotate.d/twindb-agent
+%{_sysconfdir}/cron.d/twindb-agent
+%{_datarootdir}/man/man1/twindb-agent.1.gz
 %{python_sitelib}/twindb_agent
 %{python_sitelib}/twindb_agent*.egg-info
 %{_datadir}/twindb/twindb-agent-inc.sh

@@ -103,13 +103,28 @@ install: scripts clean
 	then $(PYTHON) setup.py install \
 		--prefix /usr \
 		--install-lib $(PYTHON_LIB); \
-	else $(PYTHON) setup.py install \
+	else \
+		mkdir -p "${DESTDIR}/etc/logrotate.d/" ; \
+		mkdir -p "${DESTDIR}/etc/cron.d/" ; \
+		mkdir -p "${DESTDIR}/usr/share/man/man1/" ; \
+		install -m 644 support/twindb-agent.logrotate "${DESTDIR}/etc/logrotate.d/twindb-agent" ; \
+		gzip -c support/twindb-agent.man > "${DESTDIR}/usr/share/man/man1/twindb-agent.1.gz" ; \
+		if ! test -z "`which yum 2>/dev/null`"; \
+		then \
+			echo "aaa" ; \
+			pwd ; \
+			install -m 644 support/twindb-agent.cron.rpm "${DESTDIR}/etc/cron.d/twindb-agent" ; \
+		else \
+			echo "bbb"; \
+		fi ; \
+		if ! test -z "`which apt-get 2>/dev/null`"; \
+		then \
+			install -m 644 support/twindb-agent.cron.deb "${DESTDIR}/etc/cron.d/twindb-agent" ; \
+		fi ; \
+		$(PYTHON) setup.py install \
 		--prefix /usr \
 		--install-lib $(PYTHON_LIB) \
 		--root "${DESTDIR}" ; \
-		mkdir -p "${DESTDIR}/etc/logrotate.d/" ; \
-		install -m 644 support/twindb-agent.logrotate "${DESTDIR}/etc/logrotate.d/twindb-agent" ; \
-		install -m 644 support/twindb-agent.man "${DESTDIR}/etc/logrotate.d/twindb-agent" ; \
 	fi
 
 # Packaging
@@ -174,4 +189,3 @@ build-deb: deb-dependencies dist deb-changelog
 	cp -LR support/deb/debian.`lsb_release -sc`/ "${build_dir}/twindb-agent-${agent_version}/debian"
 	cp -LR support/deb/debian/changelog "${build_dir}/twindb-agent-${agent_version}/debian"
 	cd "${build_dir}/twindb-agent-${agent_version}" && debuild -us -uc
-
